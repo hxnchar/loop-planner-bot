@@ -1,7 +1,7 @@
 export default class Commands {
-  static start = '/start';
-  static newShifts = '/newshifts';
-  static removeShifts = '/removeshifts';
-  static editShift = '/editshift';
-  static showShifts = '/shifts';
+  static START = '/start';
+  static NEW_SHIFTS = '/newshifts';
+  static REMOVE_SHIFTS = '/removeshifts';
+  static EDIT_SHIFT = '/editshift';
+  static SHOW_SHIFTS = '/shifts';
 };
