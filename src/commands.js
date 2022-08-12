@@ -1,9 +1,7 @@
-const commands = {
-  START: '/start',
-  NEW_SHIFTS: '/newshifts',
-  REMOVE_SHIFTS: '/removeshifts',
-  EDIT_SHIFT: '/editshifts',
-  SHOW_SHIFTS: '/shifts',
+export default class Commands {
+  static start = '/start';
+  static newShifts = '/newshifts';
+  static removeShifts = '/removeshifts';
+  static editShift = '/editshift';
+  static showShifts = '/shifts';
 };
-
-export default commands;
