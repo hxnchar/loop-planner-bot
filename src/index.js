@@ -8,14 +8,29 @@ import Constants from './constants.js';
 
 dotenv.config();
 
-const bot = new TelegramApi(process.env.BOT_TOKEN, {polling: true});
+const bot = new TelegramApi(process.env.BOT_TOKEN, { polling: true });
 
-bot.setMyCommands([
-  { command: Commands.START, description: 'Initial command' },
-  { command: Commands.NEW_SHIFTS, description: 'Add new shifts to your schedule' },
-  { command: Commands.REMOVE_SHIFTS, description: 'Removes shift from your schedule' },
-  { command: Commands.EDIT_SHIFT, description: 'Edit your shifts' },
-  { command: Commands.SHOW_SHIFTS, description: 'Shows the full list of your shifts' },
+await bot.setMyCommands([
+  {
+    command: Commands.START,
+    description: 'Initial command',
+  },
+  {
+    command: Commands.NEW_SHIFTS,
+    description: 'Add new shifts to your schedule',
+  },
+  {
+    command: Commands.REMOVE_SHIFTS,
+    description: 'Removes shift from your schedule',
+  },
+  {
+    command: Commands.EDIT_SHIFT,
+    description: 'Edit your shifts',
+  },
+  {
+    command: Commands.SHOW_SHIFTS,
+    description: 'Shows the full list of your shifts',
+  },
 ]);
 
 bot.on('message', async (msg) => {
@@ -23,25 +38,34 @@ bot.on('message', async (msg) => {
   switch (msgTxt) {
     case Commands.START:
       return bot.sendMessage(chatId,
-          'Welcome to <b>Loop Planner</b>!\nI can add several same events to your calendar📅',
-          {parse_mode : "HTML"}
+        'Welcome to <b>Loop Planner</b>!' +
+        'I can add several same events to your calendar📅',
+        { parse_mode: 'HTML' },
       );
-      break;
     case Commands.NEW_SHIFTS:
-      const currentWeekStart = datefns.startOfWeek(new Date(), {weekStartsOn: 1});
+      const currentWeekStart = datefns.startOfWeek(
+        new Date(), { weekStartsOn: 1 });
       const nextWeekStart = datefns.addWeeks(currentWeekStart, 1);
-      const [currentWeekEnd, nextWeekEnd] = [datefns.addDays(currentWeekStart, 6), datefns.addDays(nextWeekStart, 6)];
+      const [currentWeekEnd, nextWeekEnd] = [
+        datefns.addDays(currentWeekStart, 6),
+        datefns.addDays(nextWeekStart, 6),
+      ];
       return bot.sendMessage(
-          chatId,
-          `Would you like to add shifts to current week <b>[${dateToShortMsg(currentWeekStart)} - ${dateToShortMsg(currentWeekEnd)}]</b> or the next <b>[${dateToShortMsg(nextWeekStart)} - ${dateToShortMsg(nextWeekEnd)}]</b>? Also, you can add shift to any other date`,
-          {
-            parse_mode : "HTML",
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.peekWeek,
-              resize_keyboard: true,
-              one_time_keyboard: true,
-            })
-          });
+        chatId,
+        `Would you like to add shifts to current week` +
+        `<b> [${dateToShortMsg(currentWeekStart)} -` +
+        `${dateToShortMsg(currentWeekEnd)}]</b> ` +
+        `or the next <b>[${dateToShortMsg(nextWeekStart)} -` +
+        `${dateToShortMsg(nextWeekEnd)}]</b>? ` +
+        `Also, you can add shift to any other date`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: JSON.stringify({
+            inline_keyboard: InlineKeyboards.peekWeek,
+            resize_keyboard: true,
+            one_time_keyboard: true,
+          }),
+        });
     case Commands.REMOVE_SHIFTS:
       return bot.sendMessage(chatId, 'Remove shifts');
     case Commands.EDIT_SHIFT:
@@ -54,54 +78,63 @@ bot.on('message', async (msg) => {
 });
 
 bot.on('callback_query', async (msg) => {
+  const data = msg.data;
+  const chatId = msg.message.chat.id;
+  const msgId = msg.message.message_id;
   try {
-    const data = msg.data;
-    const chatId = msg.message.chat.id;
-    const msgId = msg.message.message_id;
-    switch (data){
+    switch (data) {
       case Constants.CURRENT_WEEK:
-        const currentWeekStart = datefns.startOfWeek(new Date(), {weekStartsOn: 1});
-        return await bot.sendMessage(chatId, `Provide the dates you would like to work [${dateToShortMsg(currentWeekStart)} - ${dateToShortMsg(datefns.addDays(currentWeekStart, 6))}]:`, {
-          reply_markup: JSON.stringify({
-            resize_keyboard: true,
-            inline_keyboard: InlineKeyboards.printWeek(currentWeekStart)
-          })
-        });
+        const currentWeekStart = datefns.startOfWeek(
+          new Date(), { weekStartsOn: 1 });
+        return await bot.sendMessage(chatId,
+          `Provide the dates you would like to work` +
+          `[${dateToShortMsg(currentWeekStart)} - ` +
+          `${dateToShortMsg(datefns.addDays(currentWeekStart, 6))}]:`, {
+            reply_markup: JSON.stringify({
+              resize_keyboard: true,
+              inline_keyboard: InlineKeyboards.printWeek(currentWeekStart),
+            }),
+          });
       case Constants.NEXT_WEEK:
-        const nextWeekStart = datefns.addDays(datefns.startOfWeek(new Date(), {weekStartsOn: 1}), 7);
-        return await bot.sendMessage(chatId, `Provide the dates you would like to work [${dateToShortMsg(nextWeekStart)} - ${dateToShortMsg(datefns.addDays(nextWeekStart, 6))}]:`, {
-          reply_markup: JSON.stringify({
-            resize_keyboard: true,
-            inline_keyboard: InlineKeyboards.printWeek(nextWeekStart)
-          })
-        });
+        const nextWeekStart = datefns.addDays(
+          datefns.startOfWeek(new Date(), { weekStartsOn: 1 }), 7);
+        return await bot.sendMessage(chatId,
+          `Provide the dates you would like to work` +
+          `[${dateToShortMsg(nextWeekStart)} - ` +
+          `${dateToShortMsg(datefns.addDays(nextWeekStart, 6))}]:`, {
+            reply_markup: JSON.stringify({
+              resize_keyboard: true,
+              inline_keyboard: InlineKeyboards.printWeek(nextWeekStart),
+            }),
+          });
       case Constants.CUSTOM_DATE:
-        return;
+        return bot.sendMessage(chatId, 'Soon👀');
       case Constants.RESET_DAYS:
         return bot.editMessageReplyMarkup({
-            inline_keyboard: InlineKeyboards.resetDays(msg.message.reply_markup.inline_keyboard)
-          },
-          {
-            chat_id: chatId,
-            message_id: msgId
-          }
+          inline_keyboard: InlineKeyboards.resetDays(
+            msg.message.reply_markup.inline_keyboard),
+        },
+        {
+          chat_id: chatId,
+          message_id: msgId,
+        },
         );
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
           return bot.editMessageReplyMarkup({
-              inline_keyboard: InlineKeyboards.tickDay(msg.message.reply_markup.inline_keyboard, dateToTick)
-            },
-            {
-              chat_id: chatId,
-              message_id: msgId
-            }
+            inline_keyboard: InlineKeyboards.tickDay(
+              msg.message.reply_markup.inline_keyboard, dateToTick),
+          },
+          {
+            chat_id: chatId,
+            message_id: msgId,
+          },
           );
         }
-        return;
+        return bot.sendMessage(chatId, 'Invalid command, try again👀');
     }
   } catch (e) {
-    console.log('ERROR', e.message);
+    return bot.sendMessage(chatId, `Error occurred! ${e.message}`);
   }
-
 });

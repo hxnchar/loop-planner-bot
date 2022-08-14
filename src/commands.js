@@ -4,4 +4,4 @@ export default class Commands {
   static REMOVE_SHIFTS = '/removeshifts';
   static EDIT_SHIFT = '/editshift';
   static SHOW_SHIFTS = '/shifts';
-};
+}
