@@ -4,4 +4,5 @@ export default class Constants {
   static CUSTOM_DATE = 'custom-date';
   static RESET_DAYS = 'reset-days';
   static SUBMIT_DAYS = 'submit-days';
+  static DATE = 'date';
 }
