@@ -58,5 +58,53 @@ export default class InlineKeyboards {
     }
     return markup;
   }
+  static peekTime(days) {
+    const res = [];
+    const daysInRow = 2;
+    for (let i = 0; i < days.length;) {
+      const tempRes = [];
+      for (let daysInCurrentRow = 0;
+        daysInCurrentRow < daysInRow; daysInCurrentRow++) {
+        if (!days[i]) {
+          break;
+        }
+        tempRes.push({
+          text: `${days[i]}`,
+          callback_data: `TIME_NOT_PICKED:${days[i]}`,
+        });
+        i++;
+      }
+      res.push(tempRes);
+    }
+    res.push({
+      text: `SUBMIT✅`,
+      callback_data: Constants.SUBMIT_TIME,
+    });
+    return res;
+  }
+  static changeShift(markup, dateToChange) {
+    for (let i = 0; i < markup.length; i++) {
+      for (let j = 0; j < markup[i].length; j++) {
+        if (markup[i][j].text.includes(dateToChange)) {
+          if (markup[i][j].text.includes(dateToChange)) {
+            if (markup[i][j].text.startsWith(Constants.DAY_SYMBOL)) {
+              markup[i][j].text =
+                `${Constants.NIGHT_SYMBOL}${markup[i][j].text.slice(1)}`;
+              return markup;
+            }
+            if (markup[i][j].text.startsWith(Constants.NIGHT_SYMBOL)) {
+              markup[i][j].text =
+                `${Constants.DAY_SYMBOL}${markup[i][j].text.slice(1)}`;
+              return markup;
+            }
+            markup[i][j].text =
+              `${Constants.DAY_SYMBOL}${markup[i][j].text}`;
+            return markup;
+          }
+        }
+      }
+    }
+    return markup;
+  }
 }
 

@@ -4,5 +4,8 @@ export default class Constants {
   static CUSTOM_DATE = 'custom-date';
   static RESET_DAYS = 'reset-days';
   static SUBMIT_DAYS = 'submit-days';
+  static SUBMIT_TIME = 'submit-time';
   static DATE = 'date';
+  static DAY_SYMBOL = '⤴️';
+  static NIGHT_SYMBOL = '⤵️';
 }

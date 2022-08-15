@@ -1,7 +1,8 @@
 import TelegramApi from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
 import datefns from 'date-fns';
-import { dateToShortMsg } from './helpers.js';
+//import makeUrl, { TCalendarEvent } from 'add-event-to-calendar';
+import { dateToShortMsg, getDaysFromKeyboard } from './helpers.js';
 import InlineKeyboards from './inline-keyboards.js';
 import Commands from './commands.js';
 import Constants from './constants.js';
@@ -86,7 +87,7 @@ bot.on('callback_query', async (msg) => {
       case Constants.CURRENT_WEEK:
         const currentWeekStart = datefns.startOfWeek(
           new Date(), { weekStartsOn: 1 });
-        return await bot.sendMessage(chatId,
+        return bot.sendMessage(chatId,
           `Provide the dates you would like to work` +
           `[${dateToShortMsg(currentWeekStart)} - ` +
           `${dateToShortMsg(datefns.addDays(currentWeekStart, 6))}]:`, {
@@ -98,7 +99,7 @@ bot.on('callback_query', async (msg) => {
       case Constants.NEXT_WEEK:
         const nextWeekStart = datefns.addDays(
           datefns.startOfWeek(new Date(), { weekStartsOn: 1 }), 7);
-        return await bot.sendMessage(chatId,
+        return bot.sendMessage(chatId,
           `Provide the dates you would like to work` +
           `[${dateToShortMsg(nextWeekStart)} - ` +
           `${dateToShortMsg(datefns.addDays(nextWeekStart, 6))}]:`, {
@@ -119,6 +120,20 @@ bot.on('callback_query', async (msg) => {
           message_id: msgId,
         },
         );
+      case Constants.SUBMIT_DAYS:
+        const dates = getDaysFromKeyboard(
+          msg.message.reply_markup.inline_keyboard);
+        return bot.sendMessage(chatId,
+          `Provide shifts for each day:`,
+          {
+            reply_markup: JSON.stringify({
+              resize_keyboard: true,
+              inline_keyboard: InlineKeyboards.peekTime(dates),
+            }),
+          });
+      case Constants.SUBMIT_TIME:
+        //calendar logic`ll be here
+        break;
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
@@ -129,8 +144,18 @@ bot.on('callback_query', async (msg) => {
           {
             chat_id: chatId,
             message_id: msgId,
+          });
+        }
+        if (data.includes('TIME_NOT_PICKED')) {
+          const dateToChange = data.split(':')[1];
+          return bot.editMessageReplyMarkup({
+            inline_keyboard: InlineKeyboards.changeShift(
+              msg.message.reply_markup.inline_keyboard, dateToChange),
           },
-          );
+          {
+            chat_id: chatId,
+            message_id: msgId,
+          });
         }
         return bot.sendMessage(chatId, 'Invalid command, try again👀');
     }
