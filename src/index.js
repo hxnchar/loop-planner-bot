@@ -2,7 +2,11 @@ import TelegramApi from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
 import datefns from 'date-fns';
 //import makeUrl, { TCalendarEvent } from 'add-event-to-calendar';
-import { dateToShortMsg, getDaysFromKeyboard } from './helpers.js';
+import {
+  checkAllDaysPicked,
+  dateToShortMsg, generateList,
+  getDaysFromKeyboard,
+} from './helpers.js';
 import InlineKeyboards from './inline-keyboards.js';
 import Commands from './commands.js';
 import Constants from './constants.js';
@@ -108,7 +112,7 @@ bot.on('callback_query', async (msg) => {
               inline_keyboard: InlineKeyboards.printWeek(nextWeekStart),
             }),
           });
-      case Constants.CUSTOM_DATE:
+      case Constants.CUSTOM_DATES:
         return bot.sendMessage(chatId, 'Soon👀');
       case Constants.RESET_DAYS:
         return bot.editMessageReplyMarkup({
@@ -132,7 +136,7 @@ bot.on('callback_query', async (msg) => {
             }),
           });
       case Constants.SUBMIT_TIME:
-        //calendar logic`ll be here
+        generateList(msg.message.reply_markup.inline_keyboard);
         break;
       default:
         if (data.includes('EVENT_DATE')) {
@@ -162,4 +166,5 @@ bot.on('callback_query', async (msg) => {
   } catch (e) {
     return bot.sendMessage(chatId, `Error occurred! ${e.message}`);
   }
+  return bot.sendMessage(chatId, 'Soon👀');
 });

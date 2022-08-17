@@ -6,7 +6,7 @@ export default class InlineKeyboards {
   static peekWeek = [
     [{ text: 'current', callback_data: Constants.CURRENT_WEEK }],
     [{ text: 'next', callback_data: Constants.NEXT_WEEK }],
-    [{ text: 'custom', callback_data: Constants.CUSTOM_DATE }],
+    [{ text: 'custom', callback_data: Constants.CUSTOM_DATES }],
   ];
   static printWeek(firstDate, dateToTick) {
     let curDay = 0;
@@ -76,10 +76,10 @@ export default class InlineKeyboards {
       }
       res.push(tempRes);
     }
-    res.push({
+    res.push([{
       text: `SUBMIT✅`,
       callback_data: Constants.SUBMIT_TIME,
-    });
+    }]);
     return res;
   }
   static changeShift(markup, dateToChange) {
