@@ -5,7 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon src/index.js"
+    "start": "nodemon src/index.js",
+    "eslint": "eslint .",
+    "eslint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "",
@@ -13,8 +15,10 @@
   "dependencies": {
     "date-fns": "^2.29.1",
     "dotenv": "^16.0.1",
+    "mongoose": "^6.5.2",
     "node-telegram-bot-api": "^0.58.0",
-    "nodemon": "^2.0.19"
+    "nodemon": "^2.0.19",
+    "time-to-emoji": "^1.0.2"
   },
   "devDependencies": {
     "eslint": "^8.21.0",
