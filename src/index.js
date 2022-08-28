@@ -1,7 +1,6 @@
 import TelegramApi from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
 import datefns from 'date-fns';
-//import makeUrl, { TCalendarEvent } from 'add-event-to-calendar';
 import {
   checkAllDaysPicked,
   dateToShortMsg, generateList,
@@ -10,9 +9,26 @@ import {
 import InlineKeyboards from './inline-keyboards.js';
 import Commands from './commands.js';
 import Constants from './constants.js';
-
+import mongoose from 'mongoose';
+import User from './models/User.js';
+import Settings from './settings.js';
+import Time from './time.js';
 dotenv.config();
 
+let NEW_EVENT_NAME_INPUT = false;
+let NEW_EVENT_DURATION_INPUT = false;
+let FIRST_SHIFT_START_INPUT = false;
+let SECOND_SHIFT_START_INPUT = false;
+let NEW_WAGE_INPUT = false;
+let CHAT_ID;
+let MESSAGE_ID;
+let settings = new Settings();
+let CURRENT_USER;
+await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
+  () => {
+    console.log('DB connected succsessfully');
+  },
+  (e) => console.log(e));
 const bot = new TelegramApi(process.env.BOT_TOKEN, { polling: true });
 
 await bot.setMyCommands([
@@ -36,15 +52,20 @@ await bot.setMyCommands([
     command: Commands.SHOW_SHIFTS,
     description: 'Shows the full list of your shifts',
   },
+  {
+    command: Commands.SETTINGS,
+    description: 'Edit your preferences',
+  },
 ]);
 
 bot.on('message', async (msg) => {
-  const [msgTxt, chatId] = [msg.text, msg.chat.id];
+  const [msgTxt, chatId, userID] = [msg.text, msg.chat.id, msg.from.id];
   switch (msgTxt) {
     case Commands.START:
       return bot.sendMessage(chatId,
         'Welcome to <b>Loop Planner</b>!' +
-        'I can add several same events to your calendar📅',
+        '\nI can add several same events to your calendar📅' +
+        `\nType ${Commands.SETTINGS} to save some preferences`,
         { parse_mode: 'HTML' },
       );
     case Commands.NEW_SHIFTS:
@@ -58,9 +79,9 @@ bot.on('message', async (msg) => {
       return bot.sendMessage(
         chatId,
         `Would you like to add shifts to current week` +
-        `<b> [${dateToShortMsg(currentWeekStart)} -` +
+        `<b> [${dateToShortMsg(currentWeekStart)} - ` +
         `${dateToShortMsg(currentWeekEnd)}]</b> ` +
-        `or the next <b>[${dateToShortMsg(nextWeekStart)} -` +
+        `or the next <b>[${dateToShortMsg(nextWeekStart)} - ` +
         `${dateToShortMsg(nextWeekEnd)}]</b>? ` +
         `Also, you can add shift to any other date`,
         {
@@ -77,15 +98,108 @@ bot.on('message', async (msg) => {
       return bot.sendMessage(chatId, 'Edit shift');
     case Commands.SHOW_SHIFTS:
       return bot.sendMessage(chatId, 'Show shifts');
+    case Commands.SETTINGS:
+      CURRENT_USER = await User.findOne({ userID });
+      if (!CURRENT_USER) {
+        CURRENT_USER = await User.create({ userID });
+      }
+      settings = new Settings({
+        eventName: CURRENT_USER.eventName,
+        duration: CURRENT_USER.duration,
+        firstShiftStart: CURRENT_USER.firstShiftStart,
+        secondShiftStart: CURRENT_USER.secondShiftStart,
+        wage: CURRENT_USER.wage,
+      });
+      CHAT_ID = chatId;
+      return bot.sendMessage(chatId,
+        `Here's your preferences:\n${settings.toString()}`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: JSON.stringify({
+            inline_keyboard: InlineKeyboards.settings(),
+          }),
+        });
     default:
+      if (NEW_EVENT_NAME_INPUT) {
+        settings.update({ eventName: msgTxt });
+        NEW_EVENT_NAME_INPUT = false;
+        return bot.editMessageText(
+          `Here's your preferences:\n${settings.toString()}`,
+          {
+            chat_id: CHAT_ID,
+            message_id: MESSAGE_ID,
+            reply_markup: JSON.stringify({
+              inline_keyboard: InlineKeyboards.settings(),
+            }),
+          });
+      }
+      if (NEW_EVENT_DURATION_INPUT) {
+        settings.update({ duration: Time.parse(msgTxt) });
+        NEW_EVENT_DURATION_INPUT = false;
+        return bot.editMessageText(
+          `Here's your preferences:\n${settings.toString()}`,
+          {
+            chat_id: CHAT_ID,
+            message_id: MESSAGE_ID,
+            reply_markup: JSON.stringify({
+              inline_keyboard: InlineKeyboards.settings(),
+            }),
+          });
+      }
+      if (FIRST_SHIFT_START_INPUT) {
+        const newTime = Time.parse(msgTxt);
+        settings.update({ firstShiftStart: newTime });
+        FIRST_SHIFT_START_INPUT = false;
+        return bot.editMessageText(
+          `Here's your preferences:\n${settings.toString()}`,
+          {
+            chat_id: CHAT_ID,
+            message_id: MESSAGE_ID,
+            reply_markup: JSON.stringify({
+              inline_keyboard: InlineKeyboards.settings(),
+            }),
+          });
+      }
+      if (SECOND_SHIFT_START_INPUT) {
+        const newTime = Time.parse(msgTxt);
+        settings.update({ secondShiftStart: newTime });
+        SECOND_SHIFT_START_INPUT = false;
+        return bot.editMessageText(
+          `Here's your preferences:\n${settings.toString()}`,
+          {
+            chat_id: CHAT_ID,
+            message_id: MESSAGE_ID,
+            reply_markup: JSON.stringify({
+              inline_keyboard: InlineKeyboards.settings(),
+            }),
+          });
+      }
+      if (NEW_WAGE_INPUT) {
+        settings.update({ wage: parseFloat(msgTxt) });
+        NEW_WAGE_INPUT = false;
+        return bot.editMessageText(
+          `Here's your preferences:\n${settings.toString()}`,
+          {
+            chat_id: CHAT_ID,
+            message_id: MESSAGE_ID,
+            reply_markup: JSON.stringify({
+              inline_keyboard: InlineKeyboards.settings(),
+            }),
+          });
+      }
       return bot.sendMessage(chatId, 'Invalid command, try again👀');
   }
 });
 
 bot.on('callback_query', async (msg) => {
-  const data = msg.data;
-  const chatId = msg.message.chat.id;
-  const msgId = msg.message.message_id;
+  const [data, userID, chatId, msgId, msgText, keyboard] = [
+    msg.data,
+    msg.from.id,
+    msg.message.chat.id,
+    msg.message.message_id,
+    msg.message.text,
+    msg.message.reply_markup.inline_keyboard,
+  ];
   try {
     switch (data) {
       case Constants.CURRENT_WEEK:
@@ -117,7 +231,7 @@ bot.on('callback_query', async (msg) => {
       case Constants.RESET_DAYS:
         return bot.editMessageReplyMarkup({
           inline_keyboard: InlineKeyboards.resetDays(
-            msg.message.reply_markup.inline_keyboard),
+            keyboard),
         },
         {
           chat_id: chatId,
@@ -126,7 +240,7 @@ bot.on('callback_query', async (msg) => {
         );
       case Constants.SUBMIT_DAYS:
         const dates = getDaysFromKeyboard(
-          msg.message.reply_markup.inline_keyboard);
+          keyboard);
         return bot.sendMessage(chatId,
           `Provide shifts for each day:`,
           {
@@ -136,14 +250,55 @@ bot.on('callback_query', async (msg) => {
             }),
           });
       case Constants.SUBMIT_TIME:
-        generateList(msg.message.reply_markup.inline_keyboard);
+        if (checkAllDaysPicked(keyboard)) {
+          generateList(keyboard);
+        } else {
+          return bot.sendMessage(chatId, 'Peek shifts for each day');
+        }
         break;
+      case Constants.CHANGE_EVENT_NAME:
+        NEW_EVENT_NAME_INPUT = true;
+        MESSAGE_ID = msgId;
+        return bot.sendMessage(chatId, 'Type new event name');
+      case Constants.CHANGE_EVENT_DURATION:
+        NEW_EVENT_DURATION_INPUT = true;
+        MESSAGE_ID = msgId;
+        return bot.sendMessage(chatId, 'Type new event duration');
+      case Constants.CHANGE_FIRST_SHIFT_START:
+        FIRST_SHIFT_START_INPUT = true;
+        MESSAGE_ID = msgId;
+        return bot.sendMessage(chatId,
+          'Type new time when the first shift starts');
+      case Constants.CHANGE_SECOND_SHIFT_START:
+        SECOND_SHIFT_START_INPUT = true;
+        MESSAGE_ID = msgId;
+        return bot.sendMessage(chatId,
+          'Type new time when the second shift starts');
+      case Constants.CHANGE_WAGE:
+        NEW_WAGE_INPUT = true;
+        MESSAGE_ID = msgId;
+        return bot.sendMessage(chatId,
+          'Type the new wage');
+      case Constants.SUBMIT_SETTINGS:
+        CURRENT_USER = await User.findOne({ userID });
+        console.log(settings.preferences);
+        CURRENT_USER.eventName = settings.preferences.eventName;
+        CURRENT_USER.duration = settings.preferences.duration.toString();
+        CURRENT_USER.firstShiftStart =
+          settings.preferences.firstShiftStart.toString();
+        CURRENT_USER.secondShiftStart =
+          settings.preferences.secondShiftStart.toString();
+        CURRENT_USER.wage = settings.preferences.wage;
+        await CURRENT_USER.save();
+        return bot.sendMessage(chatId, 'Settings updated successfully');
+      case Constants.RETURN:
+        return bot.sendMessage(chatId, 'Return');
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
           return bot.editMessageReplyMarkup({
             inline_keyboard: InlineKeyboards.tickDay(
-              msg.message.reply_markup.inline_keyboard, dateToTick),
+              keyboard, dateToTick),
           },
           {
             chat_id: chatId,
@@ -154,7 +309,7 @@ bot.on('callback_query', async (msg) => {
           const dateToChange = data.split(':')[1];
           return bot.editMessageReplyMarkup({
             inline_keyboard: InlineKeyboards.changeShift(
-              msg.message.reply_markup.inline_keyboard, dateToChange),
+              keyboard, dateToChange),
           },
           {
             chat_id: chatId,
