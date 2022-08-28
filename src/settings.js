@@ -4,6 +4,7 @@ export default class Settings {
     duration: undefined,
     firstShiftStart: undefined,
     secondShiftStart: undefined,
+    wage: undefined,
   };
   constructor(props = {}) {
     this.preferences = { ...this.preferences, ...props };
@@ -13,14 +14,19 @@ export default class Settings {
   }
   toString() {
     const result = [];
-    result.push(`📝Event name: ${this.preferences.eventName || '[...]'};`);
-    result.push(`⏰Event duration: ${this.preferences.duration || '[...]'};`);
+    result.push(`📝Event name: <i>${this.preferences.eventName ||
+      '[...]'}</i>;`);
     result.push(
-      `🕒First shift start: ${this.preferences.firstShiftStart?.toString() ||
-        '[...]'};`);
+      `⏰Event duration: <i>${this.preferences.duration?.toString() ||
+        '[...]'}</i>;`);
     result.push(
-      `🕤Second shift start: ${this.preferences.secondShiftStart?.toString() ||
-        '[...]'};`);
+      `🕒First shift start: <i>${this.preferences.firstShiftStart?.toString() ||
+        '[...]'}</i>;`);
+    result.push(
+      `🕤Second shift start: ` +
+        `<i>${this.preferences.secondShiftStart?.toString() ||
+          '[...]'}</i>;`);
+    result.push(`💷Wage: <i>${this.preferences.wage || '[...]'}</i>.`);
     return result.join('\n');
   }
 }
