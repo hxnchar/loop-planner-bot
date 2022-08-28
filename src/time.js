@@ -1,7 +1,7 @@
 export default class Time {
   hours;
   minutes;
-  constructor(hours, minutes) {
+  constructor(hours, minutes = 0) {
     if (hours < 0 || hours > 24) {
       throw new Error('Hours must be between 0 and 24');
     }
@@ -22,6 +22,16 @@ export default class Time {
         time = new Time(hours, minutes);
       }
     });
+    if (!time) {
+      try {
+        const hours = Number(str);
+        if (hours) {
+          time = new Time(hours);
+        }
+      } catch (e) {
+        return null;
+      }
+    }
     return time;
   }
   static formatNum(num) {
