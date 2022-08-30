@@ -1,7 +1,6 @@
 export default class Constants {
   static CURRENT_WEEK = 'current-week';
   static NEXT_WEEK = 'next-week';
-  static CUSTOM_DATES = 'custom-dates';
   static RESET_DAYS = 'reset-days';
   static SUBMIT_DAYS = 'submit-days';
   static SUBMIT_TIME = 'submit-time';
@@ -14,5 +13,5 @@ export default class Constants {
   static CHANGE_FIRST_SHIFT_START = 'change-first-shift-start';
   static CHANGE_SECOND_SHIFT_START = 'change-second-shift-start';
   static CHANGE_WAGE = 'change-wage';
-  static RETURN = 'return';
+  static CHANGE_CALENDAR_ID = 'change-calendar-id';
 }

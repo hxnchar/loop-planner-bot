@@ -5,12 +5,20 @@ export default class Settings {
     firstShiftStart: undefined,
     secondShiftStart: undefined,
     wage: undefined,
+    calendarID: undefined,
   };
   constructor(props = {}) {
     this.preferences = { ...this.preferences, ...props };
   }
   update(props) {
     this.preferences = { ...this.preferences, ...props };
+  }
+  static encodeMail(text) {
+    const splitted = text.split('@');
+    const base = splitted[0];
+    const starsCount = base.length - 2;
+    return `${base.charAt(0)}${'*'.repeat(starsCount)}${base.slice(-1)}` +
+      `@${splitted[1]}`;
   }
   toString() {
     const result = [];
@@ -26,7 +34,10 @@ export default class Settings {
       `🕤Second shift start: ` +
         `<i>${this.preferences.secondShiftStart?.toString() ||
           '[...]'}</i>;`);
-    result.push(`💷Wage: <i>${this.preferences.wage || '[...]'}</i>.`);
+    result.push(`💷Wage: <i>${this.preferences.wage || '[...]'}</i>;`);
+    result.push(`👤Calendar ID: ` +
+      `<i>${this.preferences.calendarID
+        ? Settings.encodeMail(this.preferences.calendarID) : '[...]'}</i>.`);
     return result.join('\n');
   }
 }

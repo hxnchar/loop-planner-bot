@@ -10,20 +10,31 @@ import InlineKeyboards from './inline-keyboards.js';
 import Commands from './commands.js';
 import Constants from './constants.js';
 import mongoose from 'mongoose';
+import { google } from 'googleapis';
 import User from './models/User.js';
 import Settings from './settings.js';
 import Time from './time.js';
 dotenv.config();
 
+const scopes = 'https://www.googleapis.com/auth/calendar';
+const calendar = google.calendar({ version: 'v3' });
+const auth = new google.auth.JWT(
+  process.env.CALENDAR_ACCESS.client_email,
+  null,
+  process.env.CALENDAR_ACCESS.private_key,
+  'https://www.googleapis.com/auth/calendar',
+);
 let NEW_EVENT_NAME_INPUT = false;
 let NEW_EVENT_DURATION_INPUT = false;
 let FIRST_SHIFT_START_INPUT = false;
 let SECOND_SHIFT_START_INPUT = false;
 let NEW_WAGE_INPUT = false;
+let NEW_CALENDAR_ID_INPUT = false;
 let CHAT_ID;
 let MESSAGE_ID;
 let settings = new Settings();
 let CURRENT_USER;
+let EVENT_YEAR_INPUT;
 await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
   () => {
     console.log('DB connected succsessfully');
@@ -109,6 +120,7 @@ bot.on('message', async (msg) => {
         firstShiftStart: CURRENT_USER.firstShiftStart,
         secondShiftStart: CURRENT_USER.secondShiftStart,
         wage: CURRENT_USER.wage,
+        calendarID: CURRENT_USER.calendarID,
       });
       CHAT_ID = chatId;
       return bot.sendMessage(chatId,
@@ -128,6 +140,7 @@ bot.on('message', async (msg) => {
           {
             chat_id: CHAT_ID,
             message_id: MESSAGE_ID,
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.settings(),
             }),
@@ -141,6 +154,7 @@ bot.on('message', async (msg) => {
           {
             chat_id: CHAT_ID,
             message_id: MESSAGE_ID,
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.settings(),
             }),
@@ -155,6 +169,7 @@ bot.on('message', async (msg) => {
           {
             chat_id: CHAT_ID,
             message_id: MESSAGE_ID,
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.settings(),
             }),
@@ -169,6 +184,7 @@ bot.on('message', async (msg) => {
           {
             chat_id: CHAT_ID,
             message_id: MESSAGE_ID,
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.settings(),
             }),
@@ -182,6 +198,21 @@ bot.on('message', async (msg) => {
           {
             chat_id: CHAT_ID,
             message_id: MESSAGE_ID,
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+              inline_keyboard: InlineKeyboards.settings(),
+            }),
+          });
+      }
+      if (NEW_CALENDAR_ID_INPUT) {
+        settings.update({ calendarID: msgTxt });
+        NEW_CALENDAR_ID_INPUT = false;
+        return bot.editMessageText(
+          `Here's your preferences:\n${settings.toString()}`,
+          {
+            chat_id: CHAT_ID,
+            message_id: MESSAGE_ID,
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.settings(),
             }),
@@ -226,8 +257,6 @@ bot.on('callback_query', async (msg) => {
               inline_keyboard: InlineKeyboards.printWeek(nextWeekStart),
             }),
           });
-      case Constants.CUSTOM_DATES:
-        return bot.sendMessage(chatId, 'Soon👀');
       case Constants.RESET_DAYS:
         return bot.editMessageReplyMarkup({
           inline_keyboard: InlineKeyboards.resetDays(
@@ -251,7 +280,8 @@ bot.on('callback_query', async (msg) => {
           });
       case Constants.SUBMIT_TIME:
         if (checkAllDaysPicked(keyboard)) {
-          generateList(keyboard);
+          CURRENT_USER = await User.findOne({ userID });
+          generateList(keyboard, CURRENT_USER.duration);
         } else {
           return bot.sendMessage(chatId, 'Peek shifts for each day');
         }
@@ -279,9 +309,13 @@ bot.on('callback_query', async (msg) => {
         MESSAGE_ID = msgId;
         return bot.sendMessage(chatId,
           'Type the new wage');
+      case Constants.CHANGE_CALENDAR_ID:
+        NEW_CALENDAR_ID_INPUT = true;
+        MESSAGE_ID = msgId;
+        return bot.sendMessage(chatId,
+          'Type your calendar ID');
       case Constants.SUBMIT_SETTINGS:
         CURRENT_USER = await User.findOne({ userID });
-        console.log(settings.preferences);
         CURRENT_USER.eventName = settings.preferences.eventName;
         CURRENT_USER.duration = settings.preferences.duration.toString();
         CURRENT_USER.firstShiftStart =
@@ -289,10 +323,14 @@ bot.on('callback_query', async (msg) => {
         CURRENT_USER.secondShiftStart =
           settings.preferences.secondShiftStart.toString();
         CURRENT_USER.wage = settings.preferences.wage;
+        CURRENT_USER.calendarID = settings.preferences.calendarID;
         await CURRENT_USER.save();
-        return bot.sendMessage(chatId, 'Settings updated successfully');
-      case Constants.RETURN:
-        return bot.sendMessage(chatId, 'Return');
+        await bot.editMessageReplyMarkup({},
+          {
+            chat_id: CHAT_ID,
+            message_id: MESSAGE_ID,
+          });
+        return bot.sendMessage(chatId, 'Settings updated successfully✅');
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];

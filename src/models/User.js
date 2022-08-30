@@ -7,6 +7,7 @@ const User = new mongoose.Schema({
   firstShiftStart: { type: String },
   secondShiftStart: { type: String },
   wage: { type: Number },
+  calendarID: { type: String },
 });
 
 export default mongoose.model('User', User);
