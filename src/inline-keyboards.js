@@ -1,13 +1,11 @@
 import Constants from './constants.js';
 import datefns from 'date-fns';
 import { dateToLongMsg, dateToShortMsg } from './helpers.js';
-import User from './models/User.js';
 
 export default class InlineKeyboards {
   static peekWeek = [
     [{ text: 'current', callback_data: Constants.CURRENT_WEEK }],
     [{ text: 'next', callback_data: Constants.NEXT_WEEK }],
-    [{ text: 'custom', callback_data: Constants.CUSTOM_DATES }],
   ];
   static settings = () => [
     [{
@@ -31,16 +29,14 @@ export default class InlineKeyboards {
       callback_data: Constants.CHANGE_WAGE,
     }],
     [{
+      text: '👤Calendar ID [string]',
+      callback_data: Constants.CHANGE_CALENDAR_ID,
+    }],
+    [{
       text: '✅Submit',
       callback_data: Constants.SUBMIT_SETTINGS,
     }],
   ];
-  // static stepBack = [
-  //   [{
-  //     text: '🔙Return',
-  //     callback_data: Constants.RETURN,
-  //   }],
-  // ];
   static printWeek(firstDate, dateToTick) {
     let curDay = 0;
     const res = [];
