@@ -1,10 +1,12 @@
 import TelegramApi from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
 import datefns from 'date-fns';
+import datefnstz from 'date-fns-tz';
 import {
   checkAllDaysPicked,
   dateToShortMsg, generateList,
   getDaysFromKeyboard,
+  genShiftPair,
 } from './helpers.js';
 import InlineKeyboards from './inline-keyboards.js';
 import Commands from './commands.js';
@@ -15,13 +17,12 @@ import User from './models/User.js';
 import Settings from './settings.js';
 import Time from './time.js';
 dotenv.config();
-
-const scopes = 'https://www.googleapis.com/auth/calendar';
 const calendar = google.calendar({ version: 'v3' });
+const calendar_access = JSON.parse(process.env.CALENDAR_ACCESS);
 const auth = new google.auth.JWT(
-  process.env.CALENDAR_ACCESS.client_email,
+  calendar_access.client_email,
   null,
-  process.env.CALENDAR_ACCESS.private_key,
+  calendar_access.private_key,
   'https://www.googleapis.com/auth/calendar',
 );
 let NEW_EVENT_NAME_INPUT = false;
@@ -34,7 +35,6 @@ let CHAT_ID;
 let MESSAGE_ID;
 let settings = new Settings();
 let CURRENT_USER;
-let EVENT_YEAR_INPUT;
 await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
   () => {
     console.log('DB connected succsessfully');
@@ -77,7 +77,9 @@ bot.on('message', async (msg) => {
         'Welcome to <b>Loop Planner</b>!' +
         '\nI can add several same events to your calendar📅' +
         `\nType ${Commands.SETTINGS} to save some preferences`,
-        { parse_mode: 'HTML' },
+        {
+          parse_mode: 'HTML',
+        },
       );
     case Commands.NEW_SHIFTS:
       const currentWeekStart = datefns.startOfWeek(
@@ -237,11 +239,11 @@ bot.on('callback_query', async (msg) => {
         const currentWeekStart = datefns.startOfWeek(
           new Date(), { weekStartsOn: 1 });
         return bot.sendMessage(chatId,
-          `Provide the dates you would like to work` +
-          `[${dateToShortMsg(currentWeekStart)} - ` +
-          `${dateToShortMsg(datefns.addDays(currentWeekStart, 6))}]:`, {
+          `Provide the dates you would like to work ` +
+          `<b>[${dateToShortMsg(currentWeekStart)} - ` +
+          `${dateToShortMsg(datefns.addDays(currentWeekStart, 6))}]</b>:`, {
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
-              resize_keyboard: true,
               inline_keyboard: InlineKeyboards.printWeek(currentWeekStart),
             }),
           });
@@ -249,11 +251,11 @@ bot.on('callback_query', async (msg) => {
         const nextWeekStart = datefns.addDays(
           datefns.startOfWeek(new Date(), { weekStartsOn: 1 }), 7);
         return bot.sendMessage(chatId,
-          `Provide the dates you would like to work` +
-          `[${dateToShortMsg(nextWeekStart)} - ` +
-          `${dateToShortMsg(datefns.addDays(nextWeekStart, 6))}]:`, {
+          `Provide the dates you would like to work ` +
+          `<b>[${dateToShortMsg(nextWeekStart)} - ` +
+          `${dateToShortMsg(datefns.addDays(nextWeekStart, 6))}]</b>:`, {
+            parse_mode: 'HTML',
             reply_markup: JSON.stringify({
-              resize_keyboard: true,
               inline_keyboard: InlineKeyboards.printWeek(nextWeekStart),
             }),
           });
@@ -281,7 +283,30 @@ bot.on('callback_query', async (msg) => {
       case Constants.SUBMIT_TIME:
         if (checkAllDaysPicked(keyboard)) {
           CURRENT_USER = await User.findOne({ userID });
-          generateList(keyboard, CURRENT_USER.duration);
+          const dateTimeList = generateList(keyboard, CURRENT_USER);
+          dateTimeList.forEach(async (dateTime) => {
+            let [startDateTime, endDateTime] = genShiftPair(dateTime);
+            startDateTime =
+              datefns.parse(startDateTime, 'dLLL HH:mm', new Date());
+            endDateTime =
+              datefns.parse(endDateTime, 'dLLL HH:mm', new Date());
+            const event = {
+              'summary': CURRENT_USER.eventName,
+              'start': {
+                'dateTime': startDateTime,
+                'timeZone': 'Europe/London',
+              },
+              'end': {
+                'dateTime': endDateTime,
+                'timeZone': 'Europe/London',
+              },
+            };
+            await calendar.events.insert({
+              auth,
+              calendarId: CURRENT_USER.calendarID,
+              resource: event,
+            });
+          });
         } else {
           return bot.sendMessage(chatId, 'Peek shifts for each day');
         }
