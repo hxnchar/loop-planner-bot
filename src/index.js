@@ -1,31 +1,23 @@
 import TelegramApi from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
 import datefns from 'date-fns';
-import axios from 'axios';
 import {
   checkAllDaysPicked,
   dateToShortMsg, generateList,
   getDaysFromKeyboard,
   genShiftPair,
-  createEventsList,
+  showShifts,
 } from './helpers.js';
 import InlineKeyboards from './inline-keyboards.js';
+import { calendar, auth } from './api/calendar.js';
 import Commands from './commands.js';
 import Constants from './constants.js';
 import mongoose from 'mongoose';
-import { google } from 'googleapis';
 import User from './models/User.js';
 import Settings from './settings.js';
 import Time from './time.js';
 dotenv.config();
-const calendar = google.calendar({ version: 'v3' });
-const calendar_access = JSON.parse(process.env.CALENDAR_ACCESS);
-const auth = new google.auth.JWT(
-  calendar_access.client_email,
-  null,
-  calendar_access.private_key,
-  'https://www.googleapis.com/auth/calendar',
-);
+
 let NEW_EVENT_NAME_INPUT = false;
 let NEW_EVENT_DURATION_INPUT = false;
 let FIRST_SHIFT_START_INPUT = false;
@@ -72,6 +64,14 @@ await bot.setMyCommands([
 
 bot.on('message', async (msg) => {
   const [msgTxt, chatId, userID] = [msg.text, msg.chat.id, msg.from.id];
+  const currentDate = new Date();
+  const currentWeekStart =
+    datefns.startOfWeek(currentDate, { weekStartsOn: 1 });
+  const nextWeekStart = datefns.addDays(currentWeekStart, 7);
+  const [currentWeekEnd, nextWeekEnd] = [
+    datefns.addDays(currentWeekStart, 6),
+    datefns.addDays(nextWeekStart, 6),
+  ];
   switch (msgTxt) {
     case Commands.START:
       return bot.sendMessage(chatId,
@@ -83,13 +83,6 @@ bot.on('message', async (msg) => {
         },
       );
     case Commands.NEW_SHIFTS:
-      const currentWeekStart = datefns.startOfWeek(
-        new Date(), { weekStartsOn: 1 });
-      const nextWeekStart = datefns.addWeeks(currentWeekStart, 1);
-      const [currentWeekEnd, nextWeekEnd] = [
-        datefns.addDays(currentWeekStart, 6),
-        datefns.addDays(nextWeekStart, 6),
-      ];
       return bot.sendMessage(
         chatId,
         `Would you like to add shifts to current week` +
@@ -231,19 +224,23 @@ bot.on('message', async (msg) => {
 });
 
 bot.on('callback_query', async (msg) => {
-  const [data, userID, chatId, msgId, msgText, keyboard] = [
+  const [data, userID, chatId, msgId, keyboard] = [
     msg.data,
     msg.from.id,
     msg.message.chat.id,
     msg.message.message_id,
-    msg.message.text,
     msg.message.reply_markup.inline_keyboard,
   ];
+  const currentDate = new Date();
+  const currentWeekStart =
+    datefns.startOfWeek(currentDate, { weekStartsOn: 1 });
+  const nextWeekStart = datefns.addDays(currentWeekStart, 7);
+  let startDate, endDate;
+  let datesForEvents, dateTimeList;
+  let event, response, formatted;
   try {
     switch (data) {
       case Constants.CURRENT_WEEK:
-        const currentWeekStart = datefns.startOfWeek(
-          new Date(), { weekStartsOn: 1 });
         return bot.sendMessage(chatId,
           `Provide the dates you would like to work ` +
           `<b>[${dateToShortMsg(currentWeekStart)} - ` +
@@ -254,8 +251,6 @@ bot.on('callback_query', async (msg) => {
             }),
           });
       case Constants.NEXT_WEEK:
-        const nextWeekStart = datefns.addDays(
-          datefns.startOfWeek(new Date(), { weekStartsOn: 1 }), 7);
         return bot.sendMessage(chatId,
           `Provide the dates you would like to work ` +
           `<b>[${dateToShortMsg(nextWeekStart)} - ` +
@@ -276,50 +271,50 @@ bot.on('callback_query', async (msg) => {
         },
         );
       case Constants.SUBMIT_DAYS:
-        const dates = getDaysFromKeyboard(
+        datesForEvents = getDaysFromKeyboard(
           keyboard);
         return bot.sendMessage(chatId,
           `Provide shifts for each day:`,
           {
             reply_markup: JSON.stringify({
               resize_keyboard: true,
-              inline_keyboard: InlineKeyboards.peekTime(dates),
+              inline_keyboard: InlineKeyboards.peekTime(datesForEvents),
             }),
           });
       case Constants.SUBMIT_TIME:
         if (checkAllDaysPicked(keyboard)) {
           CURRENT_USER = await User.findOne({ userID });
-          const dateTimeList = generateList(keyboard, CURRENT_USER);
+          dateTimeList = generateList(keyboard, CURRENT_USER);
           dateTimeList.forEach(async (dateTime) => {
-            let [startDateTime, endDateTime] = genShiftPair(dateTime);
-            startDateTime =
-              datefns.parse(startDateTime, 'dLLL HH:mm', new Date());
-            endDateTime =
-              datefns.parse(endDateTime, 'dLLL HH:mm', new Date());
-            const event = {
+            [startDate, endDate] = genShiftPair(dateTime);
+            startDate =
+              datefns.parse(startDate, 'dLLL HH:mm', new Date());
+            endDate =
+              datefns.parse(endDate, 'dLLL HH:mm', new Date());
+            event = {
               'summary': CURRENT_USER.eventName,
               'start': {
-                'dateTime': startDateTime,
+                'dateTime': startDate,
                 'timeZone': 'Europe/London',
               },
               'end': {
-                'dateTime': endDateTime,
+                'dateTime': endDate,
                 'timeZone': 'Europe/London',
               },
             };
-            const res = await calendar.events.insert({
+            response = await calendar.events.insert({
               auth,
               calendarId: CURRENT_USER.calendarID,
               resource: event,
             });
-            const formattedDate = datefns.format(startDateTime, 'dd/LL/yyyy');
-            if (res.status === 200) {
+            formatted = datefns.format(startDate, 'dd/LL/yyyy');
+            if (response.status === 200) {
               await bot.sendMessage(chatId,
-                `✅Event on ${formattedDate} created successfully`);
+                `✅Event on ${formatted} created successfully`);
             } else {
               await bot.sendMessage(chatId,
-                `🚫Event on ${formattedDate} ` +
-                  `creation failed: Status ${res.status} :(`);
+                `🚫Event on ${formatted} ` +
+                  `creation failed: Status ${response.status} :(`);
             }
           });
         } else {
@@ -374,42 +369,55 @@ bot.on('callback_query', async (msg) => {
         return bot.sendMessage(chatId, 'Settings updated successfully✅');
       case Constants.THIS_MONTH_SHIFTS:
         CURRENT_USER = await User.findOne({ userID });
-        const currentDate = new Date();
-        const [startOfMonth, endOfMonth] = [
+        [startDate, endDate] = [
           datefns.startOfMonth(currentDate),
           datefns.endOfMonth(currentDate),
         ];
-        const response = await calendar.events.list({
+        showShifts({
           auth,
+          calendar,
+          bot,
+          chatId,
           calendarId: CURRENT_USER.calendarID,
-          timeMin: startOfMonth,
-          timeMax: endOfMonth,
-          timeZone: 'Europe/London',
+          startDate,
+          endDate,
+          eventName: CURRENT_USER.eventName,
         });
-        if (response.length === 0) {
-          return bot.sendMessage(chatId,
-            'No events in this period😕');
-        }
-        const listOfEvents =
-          createEventsList(response.data.items, CURRENT_USER.eventName);
-        let responseText = listOfEvents.map((event) => {
-          if (!event.isEvent) {
-            return `<i>${event.data}</i>`;
-          }
-          const [startDateTime, finishDateTime] = [
-            event.data.start.dateTime,
-            event.data.end.dateTime,
-          ];
-          return `<b>${datefns
-            .format(startDateTime, 'dd/LL/yyyy')}</b>: ` +
-              `${datefns.format(startDateTime, 'HH:mm')} - ` +
-              `${datefns.format(finishDateTime, 'HH:mm')}`;
+        break;
+      case Constants.CURRENT_AND_PREVIOUS:
+        CURRENT_USER = await User.findOne({ userID });
+        [startDate, endDate] = [
+          datefns.subMonths(datefns.startOfMonth(currentDate), 1),
+          datefns.endOfMonth(currentDate),
+        ];
+        showShifts({
+          auth,
+          calendar,
+          bot,
+          chatId,
+          calendarId: CURRENT_USER.calendarID,
+          startDate,
+          endDate,
+          eventName: CURRENT_USER.eventName,
         });
-        responseText = ['The list of shifts in calendar:', ...responseText];
-        responseText = responseText.join('\n');
-        return bot.sendMessage(chatId, responseText, {
-          parse_mode: 'HTML',
+        break;
+      case Constants.ALL_SHIFTS_LIST:
+        CURRENT_USER = await User.findOne({ userID });
+        [startDate, endDate] = [
+          datefns.subYears(currentDate, 5),
+          datefns.addYears(currentDate, 5),
+        ];
+        showShifts({
+          auth,
+          calendar,
+          bot,
+          chatId,
+          calendarId: CURRENT_USER.calendarID,
+          startDate,
+          endDate,
+          eventName: CURRENT_USER.eventName,
         });
+        break;
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
@@ -438,4 +446,5 @@ bot.on('callback_query', async (msg) => {
   } catch (e) {
     return bot.sendMessage(chatId, `Error occurred! ${e.message}`);
   }
+  return bot.sendMessage(chatId, `It is no way to get this message`);
 });

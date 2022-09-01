@@ -105,7 +105,45 @@ export const createEventsList = (eventsArray, eventName) => {
     }
   }
   eventsArray.splice(indexToInsert, 0,
-    // eslint-disable-next-line no-useless-escape
     new Object({ data: '<i>——— now ———</i>', isEvent: false }));
   return eventsArray;
+};
+
+export const showShifts = async ({ ...props }) => {
+  const { calendar, auth, calendarId, chatId, eventName } = props;
+  const response = await calendar.events.list({
+    auth,
+    calendarId,
+    timeMin: props.startDate,
+    timeMax: props.endDate,
+    timeZone: 'Europe/London',
+  });
+  if (response.length === 0) {
+    return props.bot.sendMessage(props.chatId,
+      'No events in this period😕');
+  }
+  const listOfEvents =
+    createEventsList(response.data.items, eventName);
+  const countEvents = listOfEvents.length - 1;
+  let responseText = listOfEvents.map((event) => {
+    if (!event.isEvent) {
+      return `<i>${event.data}</i>`;
+    }
+    const [startDateTime, finishDateTime] = [
+      event.data.start.dateTime,
+      event.data.end.dateTime,
+    ];
+    return `<b>${datefns
+      .format(startDateTime, 'dd/LL/yyyy')}</b>: ` +
+        `${datefns.format(startDateTime, 'HH:mm')} - ` +
+        `${datefns.format(finishDateTime, 'HH:mm')}`;
+  });
+  responseText =
+    [`There ${countEvents === 1 ? 'is' : 'are'} ` +
+      `<b>${countEvents} shift${countEvents === 1 ? '' : 's'}</b> ` +
+        `in your calendar:`, ...responseText];
+  responseText = responseText.join('\n');
+  return props.bot.sendMessage(chatId, responseText, {
+    parse_mode: 'HTML',
+  });
 };
