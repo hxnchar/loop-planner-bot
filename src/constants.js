@@ -14,4 +14,7 @@ export default class Constants {
   static CHANGE_SECOND_SHIFT_START = 'change-second-shift-start';
   static CHANGE_WAGE = 'change-wage';
   static CHANGE_CALENDAR_ID = 'change-calendar-id';
+  static THIS_MONTH_SHIFTS = 'this-month-shifts';
+  static CURRENT_AND_PREVIOUS = 'current-and-previous';
+  static ALL_SHIFTS_LIST = 'all-shifts-list';
 }

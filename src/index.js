@@ -1,12 +1,13 @@
 import TelegramApi from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
 import datefns from 'date-fns';
-import datefnstz from 'date-fns-tz';
+import axios from 'axios';
 import {
   checkAllDaysPicked,
   dateToShortMsg, generateList,
   getDaysFromKeyboard,
   genShiftPair,
+  createEventsList,
 } from './helpers.js';
 import InlineKeyboards from './inline-keyboards.js';
 import Commands from './commands.js';
@@ -101,8 +102,6 @@ bot.on('message', async (msg) => {
           parse_mode: 'HTML',
           reply_markup: JSON.stringify({
             inline_keyboard: InlineKeyboards.peekWeek,
-            resize_keyboard: true,
-            one_time_keyboard: true,
           }),
         });
     case Commands.REMOVE_SHIFTS:
@@ -110,7 +109,14 @@ bot.on('message', async (msg) => {
     case Commands.EDIT_SHIFT:
       return bot.sendMessage(chatId, 'Edit shift');
     case Commands.SHOW_SHIFTS:
-      return bot.sendMessage(chatId, 'Show shifts');
+      return bot.sendMessage(chatId,
+        'Shifts from which interval would you like to see?',
+        {
+          parse_mode: 'HTML',
+          reply_markup: JSON.stringify({
+            inline_keyboard: InlineKeyboards.showShifts,
+          }),
+        });
     case Commands.SETTINGS:
       CURRENT_USER = await User.findOne({ userID });
       if (!CURRENT_USER) {
@@ -301,15 +307,25 @@ bot.on('callback_query', async (msg) => {
                 'timeZone': 'Europe/London',
               },
             };
-            await calendar.events.insert({
+            const res = await calendar.events.insert({
               auth,
               calendarId: CURRENT_USER.calendarID,
               resource: event,
             });
+            const formattedDate = datefns.format(startDateTime, 'dd/LL/yyyy');
+            if (res.status === 200) {
+              await bot.sendMessage(chatId,
+                `✅Event on ${formattedDate} created successfully`);
+            } else {
+              await bot.sendMessage(chatId,
+                `🚫Event on ${formattedDate} ` +
+                  `creation failed: Status ${res.status} :(`);
+            }
           });
         } else {
           return bot.sendMessage(chatId, 'Peek shifts for each day');
         }
+        await bot.sendMessage(chatId, 'Finished🥳');
         break;
       case Constants.CHANGE_EVENT_NAME:
         NEW_EVENT_NAME_INPUT = true;
@@ -356,6 +372,44 @@ bot.on('callback_query', async (msg) => {
             message_id: MESSAGE_ID,
           });
         return bot.sendMessage(chatId, 'Settings updated successfully✅');
+      case Constants.THIS_MONTH_SHIFTS:
+        CURRENT_USER = await User.findOne({ userID });
+        const currentDate = new Date();
+        const [startOfMonth, endOfMonth] = [
+          datefns.startOfMonth(currentDate),
+          datefns.endOfMonth(currentDate),
+        ];
+        const response = await calendar.events.list({
+          auth,
+          calendarId: CURRENT_USER.calendarID,
+          timeMin: startOfMonth,
+          timeMax: endOfMonth,
+          timeZone: 'Europe/London',
+        });
+        if (response.length === 0) {
+          return bot.sendMessage(chatId,
+            'No events in this period😕');
+        }
+        const listOfEvents =
+          createEventsList(response.data.items, CURRENT_USER.eventName);
+        let responseText = listOfEvents.map((event) => {
+          if (!event.isEvent) {
+            return `<i>${event.data}</i>`;
+          }
+          const [startDateTime, finishDateTime] = [
+            event.data.start.dateTime,
+            event.data.end.dateTime,
+          ];
+          return `<b>${datefns
+            .format(startDateTime, 'dd/LL/yyyy')}</b>: ` +
+              `${datefns.format(startDateTime, 'HH:mm')} - ` +
+              `${datefns.format(finishDateTime, 'HH:mm')}`;
+        });
+        responseText = ['The list of shifts in calendar:', ...responseText];
+        responseText = responseText.join('\n');
+        return bot.sendMessage(chatId, responseText, {
+          parse_mode: 'HTML',
+        });
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
@@ -384,5 +438,4 @@ bot.on('callback_query', async (msg) => {
   } catch (e) {
     return bot.sendMessage(chatId, `Error occurred! ${e.message}`);
   }
-  return bot.sendMessage(chatId, 'Soon👀');
 });

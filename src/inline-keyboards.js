@@ -7,6 +7,14 @@ export default class InlineKeyboards {
     [{ text: 'current', callback_data: Constants.CURRENT_WEEK }],
     [{ text: 'next', callback_data: Constants.NEXT_WEEK }],
   ];
+  static showShifts = [
+    [{ text: '➡️This month', callback_data: Constants.THIS_MONTH_SHIFTS }],
+    [{
+      text: '🔄Current + previous',
+      callback_data: Constants.CURRENT_AND_PREVIOUS,
+    }],
+    [{ text: '↔️All shifts list', callback_data: Constants.ALL_SHIFTS_LIST }],
+  ];
   static settings = () => [
     [{
       text: '📝Event name [string]',

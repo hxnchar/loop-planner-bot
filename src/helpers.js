@@ -56,7 +56,7 @@ export const generateList = (keyboard, preferences) => {
   ];
   for (let i = 0; i < keyboard.length - 1; i++) {
     for (let j = 0; j < keyboard[i].length; j++) {
-      const date = keyboard[i][j].text.slice(-5);
+      const date = keyboard[i][j].text.split(' ')[1];
       const firstShift = keyboard[i][j].text.includes(Constants.DAY_SYMBOL);
       const [shiftStart, shiftEnd] =
         firstShift
@@ -78,4 +78,34 @@ export const genShiftPair = (shift) => {
   const shiftStart = `${date} ${shift.timeStart}`;
   const shiftEnd = `${date} ${shift.timeEnd}`;
   return [shiftStart, shiftEnd];
+};
+
+export const createEventsList = (eventsArray, eventName) => {
+  eventsArray = eventsArray.filter((event) =>
+    event.summary === eventName);
+  eventsArray = eventsArray
+    .map((event) => {
+      event.start.dateTime = datefns.parseISO(event.start.dateTime);
+      event.end.dateTime = datefns.parseISO(event.end.dateTime);
+      return new Object({ data: event, isEvent: true });
+    });
+  eventsArray = eventsArray.sort((event1, event2) =>
+    event1.data.start.dateTime - event2.data.start.dateTime);
+  const currentDate = new Date();
+  let indexToInsert;
+  if (currentDate < eventsArray[0].data.start.dateTime) {
+    indexToInsert = 0;
+  } else if (currentDate >
+      eventsArray[eventsArray.length - 1].data.start.dateTime) {
+    indexToInsert = eventsArray.length - 1;
+  } else {
+    for (let i = 1; i < eventsArray.length - 1; i++) {
+      if (eventsArray[i - 1].data.start.dateTime < currentDate &&
+        currentDate < eventsArray[i].data.start.dateTime) indexToInsert = i;
+    }
+  }
+  eventsArray.splice(indexToInsert, 0,
+    // eslint-disable-next-line no-useless-escape
+    new Object({ data: '<i>——— now ———</i>', isEvent: false }));
+  return eventsArray;
 };
