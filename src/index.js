@@ -9,7 +9,12 @@ import {
   showShifts,
 } from './services/helpers.js';
 import InlineKeyboards from './bot-helpers/inline-keyboards.js';
-import { calendar, auth } from './api/calendar.js';
+import {
+  calendar,
+  auth,
+  getEventId,
+  removeEvent,
+} from './api/calendar.js';
 import Commands from './bot-helpers/commands.js';
 import Formats from './bot-helpers/formats.js';
 import Constants from './bot-helpers/constants.js';
@@ -79,6 +84,7 @@ bot.on('message', async (msg) => {
     datefns.addDays(currentWeekStart, 6),
     datefns.addDays(nextWeekStart, 6),
   ];
+  let response;
   switch (msgTxt) {
     case Commands.START:
       return bot.sendMessage(chatId,
@@ -247,6 +253,16 @@ bot.on('message', async (msg) => {
             {
               parse_mode: 'HTML',
             });
+        }
+        switch (editEvent.action) {
+          case Constants.DELETE_EVENT:
+            CURRENT_USER = await User.findOne({ userID });
+            const id = await getEventId(
+              CURRENT_USER.calendarID,
+              CURRENT_USER.eventName,
+              editEvent.date);
+            response = removeEvent(CURRENT_USER.calendarID, id);
+            return bot.sendMessage(chatId, response);
         }
       }
       return bot.sendMessage(chatId, 'Invalid command, try again👀');
