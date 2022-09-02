@@ -1,7 +1,7 @@
 import datefns, { format } from 'date-fns';
-import Constants from './constants.js';
-import { Shift } from './shift.js';
-import Time from './time.js';
+import Constants from '../bot-helpers/constants.js';
+import { Shift } from '../libs/shift.js';
+import Time from '../libs/time.js';
 
 export const dateToShortMsg = (date) => {
   const parsedDate = new Date(date);
@@ -105,7 +105,7 @@ export const createEventsList = (eventsArray, eventName) => {
     }
   }
   eventsArray.splice(indexToInsert, 0,
-    new Object({ data: '<i>——— now ———</i>', isEvent: false }));
+    new Object({ data: '<i>————— now —————</i>', isEvent: false }));
   return eventsArray;
 };
 

@@ -1,6 +1,6 @@
 import Constants from './constants.js';
 import datefns from 'date-fns';
-import { dateToLongMsg, dateToShortMsg } from './helpers.js';
+import { dateToLongMsg, dateToShortMsg } from '../services/helpers.js';
 
 export default class InlineKeyboards {
   static peekWeek = [

@@ -7,15 +7,15 @@ import {
   getDaysFromKeyboard,
   genShiftPair,
   showShifts,
-} from './helpers.js';
-import InlineKeyboards from './inline-keyboards.js';
+} from './services/helpers.js';
+import InlineKeyboards from './bot-helpers/inline-keyboards.js';
 import { calendar, auth } from './api/calendar.js';
-import Commands from './commands.js';
-import Constants from './constants.js';
+import Commands from './bot-helpers/commands.js';
+import Constants from './bot-helpers/constants.js';
 import mongoose from 'mongoose';
 import User from './models/User.js';
-import Settings from './settings.js';
-import Time from './time.js';
+import Settings from './libs/settings.js';
+import Time from './libs/time.js';
 dotenv.config();
 
 let NEW_EVENT_NAME_INPUT = false;
