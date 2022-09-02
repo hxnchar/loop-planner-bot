@@ -17,4 +17,6 @@ export default class Constants {
   static THIS_MONTH_SHIFTS = 'this-month-shifts';
   static CURRENT_AND_PREVIOUS = 'current-and-previous';
   static ALL_SHIFTS_LIST = 'all-shifts-list';
+  static DELETE_EVENT = 'delete-event';
+  static EDIT_EVENT = 'edit-event';
 }

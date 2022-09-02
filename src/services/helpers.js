@@ -1,5 +1,6 @@
 import datefns, { format } from 'date-fns';
 import Constants from '../bot-helpers/constants.js';
+import Formats from '../bot-helpers/formats.js';
 import { Shift } from '../libs/shift.js';
 import Time from '../libs/time.js';
 
@@ -73,7 +74,11 @@ export const genShiftPair = (shift) => {
   if (shift.timeEnd.nextDay) {
     date = datefns.format(
       datefns.addDays(
-        datefns.parse(date, 'dLLL', new Date()), 1), 'dLLL').toUpperCase();
+        datefns.parse(
+          date,
+          Formats.dateMonth,
+          new Date()), 1),
+      Formats.dateMonth).toUpperCase();
   }
   const shiftStart = `${date} ${shift.timeStart}`;
   const shiftEnd = `${date} ${shift.timeEnd}`;
@@ -89,6 +94,9 @@ export const createEventsList = (eventsArray, eventName) => {
       event.end.dateTime = datefns.parseISO(event.end.dateTime);
       return new Object({ data: event, isEvent: true });
     });
+  if (eventsArray.length === 0) {
+    throw new Error('No suitable events in this interval');
+  }
   eventsArray = eventsArray.sort((event1, event2) =>
     event1.data.start.dateTime - event2.data.start.dateTime);
   const currentDate = new Date();
@@ -119,11 +127,15 @@ export const showShifts = async ({ ...props }) => {
     timeZone: 'Europe/London',
   });
   if (response.length === 0) {
-    return props.bot.sendMessage(props.chatId,
+    return props.bot.sendMessage(chatId,
       'No events in this period😕');
   }
-  const listOfEvents =
-    createEventsList(response.data.items, eventName);
+  let listOfEvents;
+  try {
+    listOfEvents = createEventsList(response.data.items, eventName);
+  } catch (e) {
+    return props.bot.sendMessage(chatId, e.message);
+  }
   const countEvents = listOfEvents.length - 1;
   let responseText = listOfEvents.map((event) => {
     if (!event.isEvent) {
@@ -134,9 +146,9 @@ export const showShifts = async ({ ...props }) => {
       event.data.end.dateTime,
     ];
     return `<b>${datefns
-      .format(startDateTime, 'dd/LL/yyyy')}</b>: ` +
-        `${datefns.format(startDateTime, 'HH:mm')} - ` +
-        `${datefns.format(finishDateTime, 'HH:mm')}`;
+      .format(startDateTime, Formats.fullDateLong)}</b>: ` +
+        `${datefns.format(startDateTime, Formats.time)} - ` +
+        `${datefns.format(finishDateTime, Formats.time)}`;
   });
   responseText =
     [`There ${countEvents === 1 ? 'is' : 'are'} ` +
@@ -147,3 +159,4 @@ export const showShifts = async ({ ...props }) => {
     parse_mode: 'HTML',
   });
 };
+

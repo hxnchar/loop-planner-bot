@@ -11,6 +11,7 @@ import {
 import InlineKeyboards from './bot-helpers/inline-keyboards.js';
 import { calendar, auth } from './api/calendar.js';
 import Commands from './bot-helpers/commands.js';
+import Formats from './bot-helpers/formats.js';
 import Constants from './bot-helpers/constants.js';
 import mongoose from 'mongoose';
 import User from './models/User.js';
@@ -27,7 +28,13 @@ let NEW_CALENDAR_ID_INPUT = false;
 let CHAT_ID;
 let MESSAGE_ID;
 let settings = new Settings();
+let settingsChanged = false;
 let CURRENT_USER;
+const editEvent = {
+  date: null,
+  action: null,
+};
+
 await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
   () => {
     console.log('DB connected succsessfully');
@@ -98,9 +105,13 @@ bot.on('message', async (msg) => {
           }),
         });
     case Commands.REMOVE_SHIFTS:
-      return bot.sendMessage(chatId, 'Remove shifts');
+      editEvent.action = Constants.DELETE_EVENT;
+      return bot.sendMessage(chatId,
+        'What date do you need to remove the shift?');
     case Commands.EDIT_SHIFT:
-      return bot.sendMessage(chatId, 'Edit shift');
+      editEvent.action = Constants.EDIT_EVENT;
+      return bot.sendMessage(chatId,
+        'What date do you need to edit the shift?');
     case Commands.SHOW_SHIFTS:
       return bot.sendMessage(chatId,
         'Shifts from which interval would you like to see?',
@@ -135,6 +146,7 @@ bot.on('message', async (msg) => {
     default:
       if (NEW_EVENT_NAME_INPUT) {
         settings.update({ eventName: msgTxt });
+        settingsChanged = true;
         NEW_EVENT_NAME_INPUT = false;
         return bot.editMessageText(
           `Here's your preferences:\n${settings.toString()}`,
@@ -149,6 +161,7 @@ bot.on('message', async (msg) => {
       }
       if (NEW_EVENT_DURATION_INPUT) {
         settings.update({ duration: Time.parse(msgTxt) });
+        settingsChanged = true;
         NEW_EVENT_DURATION_INPUT = false;
         return bot.editMessageText(
           `Here's your preferences:\n${settings.toString()}`,
@@ -164,6 +177,7 @@ bot.on('message', async (msg) => {
       if (FIRST_SHIFT_START_INPUT) {
         const newTime = Time.parse(msgTxt);
         settings.update({ firstShiftStart: newTime });
+        settingsChanged = true;
         FIRST_SHIFT_START_INPUT = false;
         return bot.editMessageText(
           `Here's your preferences:\n${settings.toString()}`,
@@ -179,6 +193,7 @@ bot.on('message', async (msg) => {
       if (SECOND_SHIFT_START_INPUT) {
         const newTime = Time.parse(msgTxt);
         settings.update({ secondShiftStart: newTime });
+        settingsChanged = true;
         SECOND_SHIFT_START_INPUT = false;
         return bot.editMessageText(
           `Here's your preferences:\n${settings.toString()}`,
@@ -193,6 +208,7 @@ bot.on('message', async (msg) => {
       }
       if (NEW_WAGE_INPUT) {
         settings.update({ wage: parseFloat(msgTxt) });
+        settingsChanged = true;
         NEW_WAGE_INPUT = false;
         return bot.editMessageText(
           `Here's your preferences:\n${settings.toString()}`,
@@ -207,6 +223,7 @@ bot.on('message', async (msg) => {
       }
       if (NEW_CALENDAR_ID_INPUT) {
         settings.update({ calendarID: msgTxt });
+        settingsChanged = true;
         NEW_CALENDAR_ID_INPUT = false;
         return bot.editMessageText(
           `Here's your preferences:\n${settings.toString()}`,
@@ -218,6 +235,19 @@ bot.on('message', async (msg) => {
               inline_keyboard: InlineKeyboards.settings(),
             }),
           });
+      }
+      if (editEvent.action) {
+        editEvent.date =
+          datefns.parse(msgTxt, Formats.fullDateShort, new Date());
+        if (editEvent.date.toString() === 'Invalid Date') {
+          editEvent.date = null;
+          return bot.sendMessage(chatId,
+            `Provide date in the following format: ` +
+              `<i>${datefns.format(currentDate, Formats.fullDateShort)}</i>`,
+            {
+              parse_mode: 'HTML',
+            });
+        }
       }
       return bot.sendMessage(chatId, 'Invalid command, try again👀');
   }
@@ -235,6 +265,10 @@ bot.on('callback_query', async (msg) => {
   const currentWeekStart =
     datefns.startOfWeek(currentDate, { weekStartsOn: 1 });
   const nextWeekStart = datefns.addDays(currentWeekStart, 7);
+  const [currentWeekEnd, nextWeekEnd] = [
+    datefns.addDays(currentWeekStart, 6),
+    datefns.addDays(nextWeekStart, 6),
+  ];
   let startDate, endDate;
   let datesForEvents, dateTimeList;
   let event, response, formatted;
@@ -243,8 +277,8 @@ bot.on('callback_query', async (msg) => {
       case Constants.CURRENT_WEEK:
         return bot.sendMessage(chatId,
           `Provide the dates you would like to work ` +
-          `<b>[${dateToShortMsg(currentWeekStart)} - ` +
-          `${dateToShortMsg(datefns.addDays(currentWeekStart, 6))}]</b>:`, {
+          `<b>[${datefns.format(currentWeekStart, Formats.dateMonth)} - ` +
+          `${datefns.format(currentWeekEnd, Formats.dateMonth)}]</b>:`, {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.printWeek(currentWeekStart),
@@ -253,8 +287,8 @@ bot.on('callback_query', async (msg) => {
       case Constants.NEXT_WEEK:
         return bot.sendMessage(chatId,
           `Provide the dates you would like to work ` +
-          `<b>[${dateToShortMsg(nextWeekStart)} - ` +
-          `${dateToShortMsg(datefns.addDays(nextWeekStart, 6))}]</b>:`, {
+          `<b>[${datefns.format(nextWeekStart, Formats.dateMonth)} - ` +
+          `${datefns.format(nextWeekEnd, Formats.dateMonth)}]</b>:`, {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.printWeek(nextWeekStart),
@@ -288,9 +322,11 @@ bot.on('callback_query', async (msg) => {
           dateTimeList.forEach(async (dateTime) => {
             [startDate, endDate] = genShiftPair(dateTime);
             startDate =
-              datefns.parse(startDate, 'dLLL HH:mm', new Date());
+              datefns.parse(startDate,
+                `${Formats.dateMonth} ${Formats.time}`, new Date());
             endDate =
-              datefns.parse(endDate, 'dLLL HH:mm', new Date());
+              datefns.parse(endDate,
+                `${Formats.dateMonth} ${Formats.time}`, new Date());
             event = {
               'summary': CURRENT_USER.eventName,
               'start': {
@@ -307,7 +343,7 @@ bot.on('callback_query', async (msg) => {
               calendarId: CURRENT_USER.calendarID,
               resource: event,
             });
-            formatted = datefns.format(startDate, 'dd/LL/yyyy');
+            formatted = datefns.format(startDate, Formats.fullDateLong);
             if (response.status === 200) {
               await bot.sendMessage(chatId,
                 `✅Event on ${formatted} created successfully`);
@@ -361,12 +397,16 @@ bot.on('callback_query', async (msg) => {
         CURRENT_USER.wage = settings.preferences.wage;
         CURRENT_USER.calendarID = settings.preferences.calendarID;
         await CURRENT_USER.save();
-        await bot.editMessageReplyMarkup({},
-          {
-            chat_id: CHAT_ID,
-            message_id: MESSAGE_ID,
-          });
-        return bot.sendMessage(chatId, 'Settings updated successfully✅');
+        if (settingsChanged) {
+          await bot.editMessageReplyMarkup({},
+            {
+              chat_id: CHAT_ID,
+              message_id: MESSAGE_ID,
+            });
+          return bot.sendMessage(chatId, 'Settings updated successfully✅')
+            .then(settingsChanged = false);
+        }
+        return bot.sendMessage(chatId, 'You didn\'t change anything😐');
       case Constants.THIS_MONTH_SHIFTS:
         CURRENT_USER = await User.findOne({ userID });
         [startDate, endDate] = [
