@@ -15,6 +15,20 @@ export default class InlineKeyboards {
     }],
     [{ text: '↔️All shifts list', callback_data: Constants.ALL_SHIFTS_LIST }],
   ];
+  static editEvent = [
+    [{
+      text: '📝Name',
+      callback_data: Constants.EDIT_EVENT_NAME,
+    }],
+    [{
+      text: '🕒Start time',
+      callback_data: Constants.EDIT_EVENT_START,
+    }],
+    [{
+      text: '🕤Finish time',
+      callback_data: Constants.EDIT_EVENT_END,
+    }],
+  ];
   static settings = () => [
     [{
       text: '📝Event name [string]',

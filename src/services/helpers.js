@@ -126,7 +126,7 @@ export const showShifts = async ({ ...props }) => {
     timeMax: props.endDate,
     timeZone: 'Europe/London',
   });
-  if (response.length === 0) {
+  if (response.data.items.length === 0) {
     return props.bot.sendMessage(chatId,
       'No events in this period😕');
   }

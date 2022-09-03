@@ -13,6 +13,7 @@ import {
   calendar,
   auth,
   getEventId,
+  updateEvent,
   removeEvent,
 } from './api/calendar.js';
 import Commands from './bot-helpers/commands.js';
@@ -35,10 +36,13 @@ let MESSAGE_ID;
 let settings = new Settings();
 let settingsChanged = false;
 let CURRENT_USER;
-const editEvent = {
+let editEvent = {
   date: null,
   action: null,
 };
+let editEventName;
+let editEventStart;
+let editEventEnd;
 
 await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
   () => {
@@ -84,7 +88,7 @@ bot.on('message', async (msg) => {
     datefns.addDays(currentWeekStart, 6),
     datefns.addDays(nextWeekStart, 6),
   ];
-  let response;
+  let response, eventId;
   switch (msgTxt) {
     case Commands.START:
       return bot.sendMessage(chatId,
@@ -257,13 +261,67 @@ bot.on('message', async (msg) => {
         switch (editEvent.action) {
           case Constants.DELETE_EVENT:
             CURRENT_USER = await User.findOne({ userID });
-            const id = await getEventId(
+            eventId = await getEventId(
               CURRENT_USER.calendarID,
               CURRENT_USER.eventName,
               editEvent.date);
-            response = removeEvent(CURRENT_USER.calendarID, id);
+            response = await removeEvent(CURRENT_USER.calendarID, eventId);
+            editEvent = {
+              action: null,
+              date: null,
+            };
             return bot.sendMessage(chatId, response);
+          case Constants.EDIT_EVENT:
+            CURRENT_USER = await User.findOne({ userID });
+            eventId = await getEventId(
+              CURRENT_USER.calendarID,
+              CURRENT_USER.eventName,
+              editEvent.date);
+            // response = updateEvent(CURRENT_USER.calendarID, eventId, {
+            //   sta
+            // });
+            return bot.sendMessage(chatId, 'What do you want to edit?', {
+              reply_markup: JSON.stringify({
+                inline_keyboard: InlineKeyboards.editEvent,
+              }),
+            });
         }
+      }
+      if (editEventName) {
+        CURRENT_USER = await User.findOne({ userID });
+        response = updateEvent(CURRENT_USER.calendarID, eventId, {
+          eventName: msgTxt,
+        });
+        editEventName = false;
+        editEvent = {
+          action: null,
+          date: null,
+        };
+        return bot.sendMessage(chatId, 'Event name updated succesfully');
+      }
+      if (editEventStart) {
+        CURRENT_USER = await User.findOne({ userID });
+        response = updateEvent(CURRENT_USER.calendarID, eventId, {
+          startDate: datefns.parse(msgTxt, Formats.time, new Date()),
+        });
+        editEventStart = false;
+        editEvent = {
+          action: null,
+          date: null,
+        };
+        return bot.sendMessage(chatId, 'Event start updated succesfully');
+      }
+      if (editEventEnd) {
+        CURRENT_USER = await User.findOne({ userID });
+        response = updateEvent(CURRENT_USER.calendarID, eventId, {
+          endDate: datefns.parse(msgTxt, Formats.time, new Date()),
+        });
+        editEventStart = false;
+        editEvent = {
+          action: null,
+          date: null,
+        };
+        return bot.sendMessage(chatId, 'Event end updated succesfully');
       }
       return bot.sendMessage(chatId, 'Invalid command, try again👀');
   }
@@ -474,6 +532,15 @@ bot.on('callback_query', async (msg) => {
           eventName: CURRENT_USER.eventName,
         });
         break;
+      case Constants.EDIT_EVENT_NAME:
+        editEventName = true;
+        return bot.sendMessage(chatId, `Provide the new event name`);
+      case Constants.EDIT_EVENT_START:
+        editEventStart = true;
+        return bot.sendMessage(chatId, `Provide new time for event start`);
+      case Constants.EDIT_EVENT_END:
+        editEventEnd = true;
+        return bot.sendMessage(chatId, `Provide new time for event end`);
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
