@@ -3,6 +3,7 @@ export default class Commands {
   static NEW_SHIFTS = '/newshifts';
   static REMOVE_SHIFTS = '/removeshifts';
   static SHOW_SHIFTS = '/shifts';
+  static CALCULATE_PAYMENT = '/payment';
   static SETTINGS = '/settings';
   static list = [
     {
@@ -20,6 +21,10 @@ export default class Commands {
     {
       command: Commands.SHOW_SHIFTS,
       description: 'Shows the full list of your shifts',
+    },
+    {
+      command: Commands.CALCULATE_PAYMENT,
+      description: 'Calculates salary for the last month',
     },
     {
       command: Commands.SETTINGS,

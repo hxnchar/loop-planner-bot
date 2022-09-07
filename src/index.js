@@ -14,7 +14,7 @@ import {
 } from './services/helpers.js';
 import InlineKeyboards from './bot-helpers/inline-keyboards.js';
 import {
-  getEventId, removeEvent, insertEvent, showShifts,
+  getEventId, removeEvent, insertEvent, showShifts, monthlyPayment,
 } from './api/calendar.js';
 import Commands from './bot-helpers/commands.js';
 import Formats from './bot-helpers/formats.js';
@@ -58,6 +58,10 @@ bot.on('message', async (msg) => {
     addDays(curWeekStart, 6),
     addDays(nextWeekStart, 6),
   ];
+  const [curMonthStart, curMonthEnd] = [
+    startOfMonth(curDate),
+    endOfMonth(curDate),
+  ];
   let response, eventId;
   try {
     switch (msgTxt) {
@@ -96,6 +100,19 @@ bot.on('message', async (msg) => {
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.showShifts,
             }),
+          });
+      case Commands.CALCULATE_PAYMENT:
+        response = await monthlyPayment(curUser.calendarID, curUser.wage, {
+          eventName: curUser.eventName,
+          startDate: curMonthStart,
+          endDate: curMonthEnd,
+        });
+        return bot.sendMessage(chatId,
+          `Your salary in this month going to be\n` +
+            `<b>£${response * 100 / 100}</b> without tax\n` +
+            `<b>£${(response * .8) * 100 / 100}</b> tax included`,
+          {
+            parse_mode: 'HTML',
           });
       case Commands.SETTINGS:
         if (!curUser) {

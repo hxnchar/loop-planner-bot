@@ -1,6 +1,9 @@
 import { google } from 'googleapis';
 import dotenv from 'dotenv';
-import datefns from 'date-fns';
+import {
+  format, differenceInHours, parseISO,
+  startOfDay, endOfDay,
+} from 'date-fns';
 import { createEventsList } from '../services/helpers.js';
 import Formats from '../bot-helpers/formats.js';
 dotenv.config();
@@ -14,7 +17,7 @@ export const auth = new google.auth.JWT(
 );
 
 export const getEventId = async (calendarId, eventName, date) => {
-  const [timeMin, timeMax] = [datefns.startOfDay(date), datefns.endOfDay(date)];
+  const [timeMin, timeMax] = [startOfDay(date), endOfDay(date)];
   const response = (await calendar.events.list({
     auth,
     calendarId,
@@ -88,10 +91,9 @@ export const showShifts = async (calendarId, { ...props }) => {
       event.data.start.dateTime,
       event.data.end.dateTime,
     ];
-    return `<b>${datefns
-      .format(startDateTime, Formats.fullDateLong)}</b>: ` +
-        `${datefns.format(startDateTime, Formats.time)} - ` +
-        `${datefns.format(finishDateTime, Formats.time)}`;
+    return `<b>${format(startDateTime, Formats.fullDateLong)}</b>: ` +
+        `${format(startDateTime, Formats.time)} - ` +
+        `${format(finishDateTime, Formats.time)}`;
   });
   responseText =
     [`There ${countEvents === 1 ? 'is' : 'are'} ` +
@@ -101,3 +103,20 @@ export const showShifts = async (calendarId, { ...props }) => {
   return responseText;
 };
 
+export const monthlyPayment = async (calendarId, wage, { ...props }) => {
+  const { eventName, startDate, endDate } = props;
+  let response = await calendar.events.list({
+    auth,
+    calendarId,
+    timeMin: startDate,
+    timeMax: endDate,
+    timeZone: 'Europe/London',
+  });
+  response = response.data.items.filter((elem) => elem.summary === eventName)
+    .map((elem) =>
+      differenceInHours(
+        parseISO(elem.end.dateTime),
+        parseISO(elem.start.dateTime)));
+  const hours = response.reduce((acc, elem) => acc + elem);
+  return wage * hours;
+};
