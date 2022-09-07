@@ -1,20 +1,20 @@
 import TelegramApi from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
-import datefns from 'date-fns';
+import {
+  format, parse,
+  startOfWeek, addDays,
+  addYears, subYears,
+  startOfMonth, endOfMonth, subMonths,
+} from 'date-fns';
 import {
   checkAllDaysPicked,
-  dateToShortMsg, generateList,
+  generateList,
   getDaysFromKeyboard,
   genShiftPair,
-  showShifts,
 } from './services/helpers.js';
 import InlineKeyboards from './bot-helpers/inline-keyboards.js';
 import {
-  calendar,
-  auth,
-  getEventId,
-  updateEvent,
-  removeEvent,
+  getEventId, removeEvent, insertEvent, showShifts,
 } from './api/calendar.js';
 import Commands from './bot-helpers/commands.js';
 import Formats from './bot-helpers/formats.js';
@@ -25,24 +25,18 @@ import Settings from './libs/settings.js';
 import Time from './libs/time.js';
 dotenv.config();
 
-let NEW_EVENT_NAME_INPUT = false;
-let NEW_EVENT_DURATION_INPUT = false;
-let FIRST_SHIFT_START_INPUT = false;
-let SECOND_SHIFT_START_INPUT = false;
-let NEW_WAGE_INPUT = false;
-let NEW_CALENDAR_ID_INPUT = false;
+const userAction = {
+  action: undefined,
+  date: undefined,
+};
+
 let CHAT_ID;
 let MESSAGE_ID;
 let settings = new Settings();
 let settingsChanged = false;
-let CURRENT_USER;
-let editEvent = {
-  date: null,
-  action: null,
-};
-let editEventName;
-let editEventStart;
-let editEventEnd;
+let curUser;
+let deleteEvent;
+let actionDate;
 
 await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
   () => {
@@ -51,318 +45,227 @@ await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.D
   (e) => console.log(e));
 const bot = new TelegramApi(process.env.BOT_TOKEN, { polling: true });
 
-await bot.setMyCommands([
-  {
-    command: Commands.START,
-    description: 'Initial command',
-  },
-  {
-    command: Commands.NEW_SHIFTS,
-    description: 'Add new shifts to your schedule',
-  },
-  {
-    command: Commands.REMOVE_SHIFTS,
-    description: 'Removes shift from your schedule',
-  },
-  {
-    command: Commands.EDIT_SHIFT,
-    description: 'Edit your shifts',
-  },
-  {
-    command: Commands.SHOW_SHIFTS,
-    description: 'Shows the full list of your shifts',
-  },
-  {
-    command: Commands.SETTINGS,
-    description: 'Edit your preferences',
-  },
-]);
+await bot.setMyCommands(Commands.list);
 
 bot.on('message', async (msg) => {
-  const [msgTxt, chatId, userID] = [msg.text, msg.chat.id, msg.from.id];
-  const currentDate = new Date();
-  const currentWeekStart =
-    datefns.startOfWeek(currentDate, { weekStartsOn: 1 });
-  const nextWeekStart = datefns.addDays(currentWeekStart, 7);
-  const [currentWeekEnd, nextWeekEnd] = [
-    datefns.addDays(currentWeekStart, 6),
-    datefns.addDays(nextWeekStart, 6),
+  const [msgTxt, chatId, userId] = [msg.text, msg.chat.id, msg.from.id];
+  curUser = await User.findOne({ userId });
+  const curDate = new Date();
+  const curWeekStart =
+    startOfWeek(curDate, { weekStartsOn: 1 });
+  const nextWeekStart = addDays(curWeekStart, 7);
+  const [curWeekEnd, nextWeekEnd] = [
+    addDays(curWeekStart, 6),
+    addDays(nextWeekStart, 6),
   ];
   let response, eventId;
-  switch (msgTxt) {
-    case Commands.START:
-      return bot.sendMessage(chatId,
-        'Welcome to <b>Loop Planner</b>!' +
-        '\nI can add several same events to your calendar📅' +
-        `\nType ${Commands.SETTINGS} to save some preferences`,
-        {
-          parse_mode: 'HTML',
-        },
-      );
-    case Commands.NEW_SHIFTS:
-      return bot.sendMessage(
-        chatId,
-        `Would you like to add shifts to current week` +
-        `<b> [${dateToShortMsg(currentWeekStart)} - ` +
-        `${dateToShortMsg(currentWeekEnd)}]</b> ` +
-        `or the next <b>[${dateToShortMsg(nextWeekStart)} - ` +
-        `${dateToShortMsg(nextWeekEnd)}]</b>? ` +
-        `Also, you can add shift to any other date`,
-        {
-          parse_mode: 'HTML',
-          reply_markup: JSON.stringify({
-            inline_keyboard: InlineKeyboards.peekWeek,
-          }),
-        });
-    case Commands.REMOVE_SHIFTS:
-      editEvent.action = Constants.DELETE_EVENT;
-      return bot.sendMessage(chatId,
-        'What date do you need to remove the shift?');
-    case Commands.EDIT_SHIFT:
-      editEvent.action = Constants.EDIT_EVENT;
-      return bot.sendMessage(chatId,
-        'What date do you need to edit the shift?');
-    case Commands.SHOW_SHIFTS:
-      return bot.sendMessage(chatId,
-        'Shifts from which interval would you like to see?',
-        {
-          parse_mode: 'HTML',
-          reply_markup: JSON.stringify({
-            inline_keyboard: InlineKeyboards.showShifts,
-          }),
-        });
-    case Commands.SETTINGS:
-      CURRENT_USER = await User.findOne({ userID });
-      if (!CURRENT_USER) {
-        CURRENT_USER = await User.create({ userID });
-      }
-      settings = new Settings({
-        eventName: CURRENT_USER.eventName,
-        duration: CURRENT_USER.duration,
-        firstShiftStart: CURRENT_USER.firstShiftStart,
-        secondShiftStart: CURRENT_USER.secondShiftStart,
-        wage: CURRENT_USER.wage,
-        calendarID: CURRENT_USER.calendarID,
-      });
-      CHAT_ID = chatId;
-      return bot.sendMessage(chatId,
-        `Here's your preferences:\n${settings.toString()}`,
-        {
-          parse_mode: 'HTML',
-          reply_markup: JSON.stringify({
-            inline_keyboard: InlineKeyboards.settings(),
-          }),
-        });
-    default:
-      if (NEW_EVENT_NAME_INPUT) {
-        settings.update({ eventName: msgTxt });
-        settingsChanged = true;
-        NEW_EVENT_NAME_INPUT = false;
-        return bot.editMessageText(
-          `Here's your preferences:\n${settings.toString()}`,
+  try {
+    switch (msgTxt) {
+      case Commands.START:
+        return bot.sendMessage(chatId,
+          'Welcome to <b>Loop Planner</b>!' +
+          '\nI can add several same events to your calendar📅' +
+          `\nType ${Commands.SETTINGS} to save some preferences`,
           {
-            chat_id: CHAT_ID,
-            message_id: MESSAGE_ID,
+            parse_mode: 'HTML',
+          },
+        );
+      case Commands.NEW_SHIFTS:
+        return bot.sendMessage(
+          chatId,
+          `Would you like to add shifts to current week` +
+          `<b> [${format(curWeekStart, Formats.dateMonth)} - ` +
+          `${format(curWeekEnd, Formats.dateMonth)}]</b> ` +
+          `or the next <b>[${format(nextWeekStart, Formats.dateMonth)} - ` +
+          `${format(nextWeekEnd, Formats.dateMonth)}]</b>?`,
+          {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.settings(),
+              inline_keyboard: InlineKeyboards.peekWeek,
             }),
           });
-      }
-      if (NEW_EVENT_DURATION_INPUT) {
-        settings.update({ duration: Time.parse(msgTxt) });
-        settingsChanged = true;
-        NEW_EVENT_DURATION_INPUT = false;
-        return bot.editMessageText(
-          `Here's your preferences:\n${settings.toString()}`,
+      case Commands.REMOVE_SHIFTS:
+        deleteEvent = true;
+        return bot.sendMessage(chatId,
+          'What date do you need to remove the shift?');
+      case Commands.SHOW_SHIFTS:
+        return bot.sendMessage(chatId,
+          'Shifts from which interval would you like to see?',
           {
-            chat_id: CHAT_ID,
-            message_id: MESSAGE_ID,
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.settings(),
+              inline_keyboard: InlineKeyboards.showShifts,
             }),
           });
-      }
-      if (FIRST_SHIFT_START_INPUT) {
-        const newTime = Time.parse(msgTxt);
-        settings.update({ firstShiftStart: newTime });
-        settingsChanged = true;
-        FIRST_SHIFT_START_INPUT = false;
-        return bot.editMessageText(
-          `Here's your preferences:\n${settings.toString()}`,
-          {
-            chat_id: CHAT_ID,
-            message_id: MESSAGE_ID,
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.settings(),
-            }),
-          });
-      }
-      if (SECOND_SHIFT_START_INPUT) {
-        const newTime = Time.parse(msgTxt);
-        settings.update({ secondShiftStart: newTime });
-        settingsChanged = true;
-        SECOND_SHIFT_START_INPUT = false;
-        return bot.editMessageText(
-          `Here's your preferences:\n${settings.toString()}`,
-          {
-            chat_id: CHAT_ID,
-            message_id: MESSAGE_ID,
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.settings(),
-            }),
-          });
-      }
-      if (NEW_WAGE_INPUT) {
-        settings.update({ wage: parseFloat(msgTxt) });
-        settingsChanged = true;
-        NEW_WAGE_INPUT = false;
-        return bot.editMessageText(
-          `Here's your preferences:\n${settings.toString()}`,
-          {
-            chat_id: CHAT_ID,
-            message_id: MESSAGE_ID,
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.settings(),
-            }),
-          });
-      }
-      if (NEW_CALENDAR_ID_INPUT) {
-        settings.update({ calendarID: msgTxt });
-        settingsChanged = true;
-        NEW_CALENDAR_ID_INPUT = false;
-        return bot.editMessageText(
-          `Here's your preferences:\n${settings.toString()}`,
-          {
-            chat_id: CHAT_ID,
-            message_id: MESSAGE_ID,
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.settings(),
-            }),
-          });
-      }
-      if (editEvent.action) {
-        editEvent.date =
-          datefns.parse(msgTxt, Formats.fullDateShort, new Date());
-        if (editEvent.date.toString() === 'Invalid Date') {
-          editEvent.date = null;
-          return bot.sendMessage(chatId,
-            `Provide date in the following format: ` +
-              `<i>${datefns.format(currentDate, Formats.fullDateShort)}</i>`,
-            {
-              parse_mode: 'HTML',
-            });
+      case Commands.SETTINGS:
+        if (!curUser) {
+          curUser = await User.create({ userId });
         }
-        switch (editEvent.action) {
-          case Constants.DELETE_EVENT:
-            CURRENT_USER = await User.findOne({ userID });
-            eventId = await getEventId(
-              CURRENT_USER.calendarID,
-              CURRENT_USER.eventName,
-              editEvent.date);
-            response = await removeEvent(CURRENT_USER.calendarID, eventId);
-            editEvent = {
-              action: null,
-              date: null,
-            };
-            return bot.sendMessage(chatId, response);
-          case Constants.EDIT_EVENT:
-            CURRENT_USER = await User.findOne({ userID });
-            eventId = await getEventId(
-              CURRENT_USER.calendarID,
-              CURRENT_USER.eventName,
-              editEvent.date);
-            // response = updateEvent(CURRENT_USER.calendarID, eventId, {
-            //   sta
-            // });
-            return bot.sendMessage(chatId, 'What do you want to edit?', {
-              reply_markup: JSON.stringify({
-                inline_keyboard: InlineKeyboards.editEvent,
-              }),
-            });
+        settings = new Settings({
+          eventName: curUser.eventName,
+          duration: curUser.duration,
+          firstShiftStart: curUser.firstShiftStart,
+          secondShiftStart: curUser.secondShiftStart,
+          wage: curUser.wage,
+          calendarID: curUser.calendarID,
+        });
+        CHAT_ID = chatId;
+        return bot.sendMessage(chatId,
+          `Here's your preferences:\n${settings.toString()}`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+              inline_keyboard: InlineKeyboards.settings(),
+            }),
+          });
+      default:
+        switch (userAction.action) {
+          case Constants.CHANGE_EVENT_NAME:
+            settingsChanged = settings.update({ eventName: msgTxt });
+            userAction.action = null;
+            return bot.editMessageText(
+              `Here's your preferences:\n${settings.toString()}`,
+              {
+                chat_id: CHAT_ID,
+                message_id: MESSAGE_ID,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                  inline_keyboard: InlineKeyboards.settings(),
+                }),
+              });
+          case Constants.CHANGE_EVENT_DURATION:
+            settingsChanged = settings.update({ duration: Time.parse(msgTxt) });
+            userAction.action = null;
+            return bot.editMessageText(
+              `Here's your preferences:\n${settings.toString()}`,
+              {
+                chat_id: CHAT_ID,
+                message_id: MESSAGE_ID,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                  inline_keyboard: InlineKeyboards.settings(),
+                }),
+              });
+          case Constants.CHANGE_FIRST_SHIFT_START:
+            settingsChanged = settings.update({ duration: Time.parse(msgTxt) });
+            userAction.action = null;
+            return bot.editMessageText(
+              `Here's your preferences:\n${settings.toString()}`,
+              {
+                chat_id: CHAT_ID,
+                message_id: MESSAGE_ID,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                  inline_keyboard: InlineKeyboards.settings(),
+                }),
+              });
+          case Constants.CHANGE_SECOND_SHIFT_START:
+            settingsChanged =
+              settings.update({ secondShiftStart: Time.parse(msgTxt) });
+            userAction.action = null;
+            return bot.editMessageText(
+              `Here's your preferences:\n${settings.toString()}`,
+              {
+                chat_id: CHAT_ID,
+                message_id: MESSAGE_ID,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                  inline_keyboard: InlineKeyboards.settings(),
+                }),
+              });
+          case Constants.CHANGE_WAGE:
+            settingsChanged = settings.update({ wage: parseFloat(msgTxt) });
+            userAction.action = null;
+            return bot.editMessageText(
+              `Here's your preferences:\n${settings.toString()}`,
+              {
+                chat_id: CHAT_ID,
+                message_id: MESSAGE_ID,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                  inline_keyboard: InlineKeyboards.settings(),
+                }),
+              });
+          case Constants.CHANGE_CALENDAR_ID:
+            settingsChanged = settings.update({ calendarID: msgTxt });
+            userAction.action = null;
+            return bot.editMessageText(
+              `Here's your preferences:\n${settings.toString()}`,
+              {
+                chat_id: CHAT_ID,
+                message_id: MESSAGE_ID,
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                  inline_keyboard: InlineKeyboards.settings(),
+                }),
+              });
         }
-      }
-      if (editEventName) {
-        CURRENT_USER = await User.findOne({ userID });
-        response = updateEvent(CURRENT_USER.calendarID, eventId, {
-          eventName: msgTxt,
-        });
-        editEventName = false;
-        editEvent = {
-          action: null,
-          date: null,
-        };
-        return bot.sendMessage(chatId, 'Event name updated succesfully');
-      }
-      if (editEventStart) {
-        CURRENT_USER = await User.findOne({ userID });
-        response = updateEvent(CURRENT_USER.calendarID, eventId, {
-          startDate: datefns.parse(msgTxt, Formats.time, new Date()),
-        });
-        editEventStart = false;
-        editEvent = {
-          action: null,
-          date: null,
-        };
-        return bot.sendMessage(chatId, 'Event start updated succesfully');
-      }
-      if (editEventEnd) {
-        CURRENT_USER = await User.findOne({ userID });
-        response = updateEvent(CURRENT_USER.calendarID, eventId, {
-          endDate: datefns.parse(msgTxt, Formats.time, new Date()),
-        });
-        editEventStart = false;
-        editEvent = {
-          action: null,
-          date: null,
-        };
-        return bot.sendMessage(chatId, 'Event end updated succesfully');
-      }
-      return bot.sendMessage(chatId, 'Invalid command, try again👀');
+        if (deleteEvent) {
+          actionDate = parse(msgTxt, Formats.fullDateShort, new Date());
+          if (actionDate.toString() === 'Invalid Date') {
+            actionDate = null;
+            return bot.sendMessage(chatId,
+              `Provide date in the following format: ` +
+                `<i>${format(curDate, Formats.fullDateShort)}</i>`,
+              {
+                parse_mode: 'HTML',
+              });
+          }
+          eventId = await getEventId(
+            curUser.calendarID,
+            curUser.eventName,
+            actionDate);
+          response = await removeEvent(curUser.calendarID, eventId);
+          actionDate = null;
+          if (response) {
+            return bot.sendMessage(chatId, 'Event removed succesfully');
+          }
+          return bot.sendMessage(chatId, 'Something went wrong');
+        }
+        return bot.sendMessage(chatId, 'Invalid command, try again👀');
+    }
+  } catch (e) {
+    return bot.sendMessage(chatId, `Error occurred! ${e.message}`);
   }
 });
 
 bot.on('callback_query', async (msg) => {
-  const [data, userID, chatId, msgId, keyboard] = [
+  const [data, userId, chatId, msgId, keyboard] = [
     msg.data,
     msg.from.id,
     msg.message.chat.id,
     msg.message.message_id,
     msg.message.reply_markup.inline_keyboard,
   ];
-  const currentDate = new Date();
-  const currentWeekStart =
-    datefns.startOfWeek(currentDate, { weekStartsOn: 1 });
-  const nextWeekStart = datefns.addDays(currentWeekStart, 7);
-  const [currentWeekEnd, nextWeekEnd] = [
-    datefns.addDays(currentWeekStart, 6),
-    datefns.addDays(nextWeekStart, 6),
+  curUser = await User.findOne({ userId });
+  const curDate = new Date();
+  const curWeekStart =
+    startOfWeek(curDate, { weekStartsOn: 1 });
+  const nextWeekStart = addDays(curWeekStart, 7);
+  const [curWeekEnd, nextWeekEnd] = [
+    addDays(curWeekStart, 6),
+    addDays(nextWeekStart, 6),
   ];
   let startDate, endDate;
   let datesForEvents, dateTimeList;
-  let event, response, formatted;
+  let response, formatted;
   try {
     switch (data) {
       case Constants.CURRENT_WEEK:
         return bot.sendMessage(chatId,
           `Provide the dates you would like to work ` +
-          `<b>[${datefns.format(currentWeekStart, Formats.dateMonth)} - ` +
-          `${datefns.format(currentWeekEnd, Formats.dateMonth)}]</b>:`, {
+          `<b>[${format(curWeekStart, Formats.dateMonth)} - ` +
+          `${format(curWeekEnd, Formats.dateMonth)}]</b>:`, {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.printWeek(currentWeekStart),
+              inline_keyboard: InlineKeyboards.printWeek(curWeekStart),
             }),
           });
       case Constants.NEXT_WEEK:
         return bot.sendMessage(chatId,
           `Provide the dates you would like to work ` +
-          `<b>[${datefns.format(nextWeekStart, Formats.dateMonth)} - ` +
-          `${datefns.format(nextWeekEnd, Formats.dateMonth)}]</b>:`, {
+          `<b>[${format(nextWeekStart, Formats.dateMonth)} - ` +
+          `${format(nextWeekEnd, Formats.dateMonth)}]</b>:`, {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
               inline_keyboard: InlineKeyboards.printWeek(nextWeekStart),
@@ -391,33 +294,21 @@ bot.on('callback_query', async (msg) => {
           });
       case Constants.SUBMIT_TIME:
         if (checkAllDaysPicked(keyboard)) {
-          CURRENT_USER = await User.findOne({ userID });
-          dateTimeList = generateList(keyboard, CURRENT_USER);
+          dateTimeList = generateList(keyboard, curUser);
           dateTimeList.forEach(async (dateTime) => {
             [startDate, endDate] = genShiftPair(dateTime);
             startDate =
-              datefns.parse(startDate,
+              parse(startDate,
                 `${Formats.dateMonth} ${Formats.time}`, new Date());
             endDate =
-              datefns.parse(endDate,
+              parse(endDate,
                 `${Formats.dateMonth} ${Formats.time}`, new Date());
-            event = {
-              'summary': CURRENT_USER.eventName,
-              'start': {
-                'dateTime': startDate,
-                'timeZone': 'Europe/London',
-              },
-              'end': {
-                'dateTime': endDate,
-                'timeZone': 'Europe/London',
-              },
-            };
-            response = await calendar.events.insert({
-              auth,
-              calendarId: CURRENT_USER.calendarID,
-              resource: event,
+            response = await insertEvent(curUser.calendarID, {
+              eventName: curUser.eventName,
+              startDate,
+              endDate,
             });
-            formatted = datefns.format(startDate, Formats.fullDateLong);
+            formatted = format(startDate, Formats.fullDateLong);
             if (response.status === 200) {
               await bot.sendMessage(chatId,
                 `✅Event on ${formatted} created successfully`);
@@ -430,47 +321,45 @@ bot.on('callback_query', async (msg) => {
         } else {
           return bot.sendMessage(chatId, 'Peek shifts for each day');
         }
-        await bot.sendMessage(chatId, 'Finished🥳');
-        break;
+        return bot.sendMessage(chatId, 'Finished🥳');
       case Constants.CHANGE_EVENT_NAME:
-        NEW_EVENT_NAME_INPUT = true;
+        userAction.action = Constants.CHANGE_EVENT_NAME;
         MESSAGE_ID = msgId;
         return bot.sendMessage(chatId, 'Type new event name');
       case Constants.CHANGE_EVENT_DURATION:
-        NEW_EVENT_DURATION_INPUT = true;
+        userAction.action = Constants.CHANGE_EVENT_DURATION;
         MESSAGE_ID = msgId;
         return bot.sendMessage(chatId, 'Type new event duration');
       case Constants.CHANGE_FIRST_SHIFT_START:
-        FIRST_SHIFT_START_INPUT = true;
+        userAction.action = Constants.CHANGE_FIRST_SHIFT_START;
         MESSAGE_ID = msgId;
         return bot.sendMessage(chatId,
           'Type new time when the first shift starts');
       case Constants.CHANGE_SECOND_SHIFT_START:
-        SECOND_SHIFT_START_INPUT = true;
+        userAction.action = Constants.CHANGE_SECOND_SHIFT_START;
         MESSAGE_ID = msgId;
         return bot.sendMessage(chatId,
           'Type new time when the second shift starts');
       case Constants.CHANGE_WAGE:
-        NEW_WAGE_INPUT = true;
+        userAction.action = Constants.CHANGE_WAGE;
         MESSAGE_ID = msgId;
         return bot.sendMessage(chatId,
           'Type the new wage');
       case Constants.CHANGE_CALENDAR_ID:
-        NEW_CALENDAR_ID_INPUT = true;
+        userAction.action = Constants.CHANGE_CALENDAR_ID;
         MESSAGE_ID = msgId;
         return bot.sendMessage(chatId,
           'Type your calendar ID');
       case Constants.SUBMIT_SETTINGS:
-        CURRENT_USER = await User.findOne({ userID });
-        CURRENT_USER.eventName = settings.preferences.eventName;
-        CURRENT_USER.duration = settings.preferences.duration.toString();
-        CURRENT_USER.firstShiftStart =
+        curUser.eventName = settings.preferences.eventName;
+        curUser.duration = settings.preferences.duration.toString();
+        curUser.firstShiftStart =
           settings.preferences.firstShiftStart.toString();
-        CURRENT_USER.secondShiftStart =
+        curUser.secondShiftStart =
           settings.preferences.secondShiftStart.toString();
-        CURRENT_USER.wage = settings.preferences.wage;
-        CURRENT_USER.calendarID = settings.preferences.calendarID;
-        await CURRENT_USER.save();
+        curUser.wage = settings.preferences.wage;
+        curUser.calendarID = settings.preferences.calendarID;
+        await curUser.save();
         if (settingsChanged) {
           await bot.editMessageReplyMarkup({},
             {
@@ -482,65 +371,44 @@ bot.on('callback_query', async (msg) => {
         }
         return bot.sendMessage(chatId, 'You didn\'t change anything😐');
       case Constants.THIS_MONTH_SHIFTS:
-        CURRENT_USER = await User.findOne({ userID });
         [startDate, endDate] = [
-          datefns.startOfMonth(currentDate),
-          datefns.endOfMonth(currentDate),
+          startOfMonth(curDate),
+          endOfMonth(curDate),
         ];
-        showShifts({
-          auth,
-          calendar,
-          bot,
-          chatId,
-          calendarId: CURRENT_USER.calendarID,
+        response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
-          eventName: CURRENT_USER.eventName,
+          eventName: curUser.eventName,
         });
-        break;
+        return bot.sendMessage(chatId, response, {
+          parse_mode: 'HTML',
+        });
       case Constants.CURRENT_AND_PREVIOUS:
-        CURRENT_USER = await User.findOne({ userID });
         [startDate, endDate] = [
-          datefns.subMonths(datefns.startOfMonth(currentDate), 1),
-          datefns.endOfMonth(currentDate),
+          subMonths(startOfMonth(curDate), 1),
+          endOfMonth(curDate),
         ];
-        showShifts({
-          auth,
-          calendar,
-          bot,
-          chatId,
-          calendarId: CURRENT_USER.calendarID,
+        response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
-          eventName: CURRENT_USER.eventName,
+          eventName: curUser.eventName,
         });
-        break;
+        return bot.sendMessage(chatId, response, {
+          parse_mode: 'HTML',
+        });
       case Constants.ALL_SHIFTS_LIST:
-        CURRENT_USER = await User.findOne({ userID });
         [startDate, endDate] = [
-          datefns.subYears(currentDate, 5),
-          datefns.addYears(currentDate, 5),
+          subYears(curDate, 5),
+          addYears(curDate, 5),
         ];
-        showShifts({
-          auth,
-          calendar,
-          bot,
-          chatId,
-          calendarId: CURRENT_USER.calendarID,
+        response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
-          eventName: CURRENT_USER.eventName,
+          eventName: curUser.eventName,
         });
-        break;
-      case Constants.EDIT_EVENT_NAME:
-        editEventName = true;
-        return bot.sendMessage(chatId, `Provide the new event name`);
-      case Constants.EDIT_EVENT_START:
-        editEventStart = true;
-        return bot.sendMessage(chatId, `Provide new time for event start`);
-      case Constants.EDIT_EVENT_END:
-        editEventEnd = true;
-        return bot.sendMessage(chatId, `Provide new time for event end`);
+        return bot.sendMessage(chatId, response, {
+          parse_mode: 'HTML',
+        });
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
@@ -569,5 +437,4 @@ bot.on('callback_query', async (msg) => {
   } catch (e) {
     return bot.sendMessage(chatId, `Error occurred! ${e.message}`);
   }
-  return bot.sendMessage(chatId, `It is no way to get this message`);
 });

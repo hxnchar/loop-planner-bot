@@ -18,8 +18,4 @@ export default class Constants {
   static CURRENT_AND_PREVIOUS = 'current-and-previous';
   static ALL_SHIFTS_LIST = 'all-shifts-list';
   static DELETE_EVENT = 'delete-event';
-  static EDIT_EVENT = 'edit-event';
-  static EDIT_EVENT_NAME = 'edit-event-name';
-  static EDIT_EVENT_START = 'edit-event-start';
-  static EDIT_EVENT_END = 'edit-event-end';
 }
