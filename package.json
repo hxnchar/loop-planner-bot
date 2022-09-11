@@ -7,8 +7,11 @@
   "scripts": {
     "start": "node src/index.js",
     "start:dev": "nodemon src/index.js",
-    "eslint": "eslint .",
-    "eslint:fix": "eslint . --fix"
+    "eslint": "eslint . --ignore-path .gitignore",
+    "eslint:fix": "eslint . --fix --ignore-path .gitignore",
+    "prettier": "prettier --check . --ignore-path .gitignore",
+    "prettier:fix": "prettier --write . --ignore-path .gitignore",
+    "prepare": "husky install"
   },
   "keywords": [],
   "author": "Oleksii Honchar",
@@ -26,7 +29,13 @@
   "devDependencies": {
     "eslint": "^8.21.0",
     "eslint-config-metarhia": "^8.1.0",
-    "eslint-plugin-import": "^2.26.0"
+    "eslint-plugin-import": "^2.26.0",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
     "prettier": "^2.7.1"
+  },
+  "lint-staged": {
+    "*.*": "npm run prettier:fix",
+    "*.{js}": "npm run eslint:fix"
   }
 }
