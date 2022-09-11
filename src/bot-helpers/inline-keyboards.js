@@ -1,5 +1,5 @@
-import Constants from './constants.js';
 import datefns from 'date-fns';
+import Constants from './constants.js';
 import { dateToLongMsg, dateToShortMsg } from '../services/helpers.js';
 
 export default class InlineKeyboards {

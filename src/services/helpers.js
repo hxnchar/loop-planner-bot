@@ -1,4 +1,6 @@
-import datefns, { format } from 'date-fns';
+import {
+  format, addDays, parse, parseISO,
+} from 'date-fns';
 import Constants from '../bot-helpers/constants.js';
 import Formats from '../bot-helpers/formats.js';
 import { Shift } from '../libs/shift.js';
@@ -72,9 +74,9 @@ export const generateList = (keyboard, preferences) => {
 export const genShiftPair = (shift) => {
   let date = shift.date.trim();
   if (shift.timeEnd.nextDay) {
-    date = datefns.format(
-      datefns.addDays(
-        datefns.parse(
+    date = format(
+      addDays(
+        parse(
           date,
           Formats.dateMonth,
           new Date()), 1),
@@ -90,8 +92,8 @@ export const createEventsList = (eventsArray, eventName) => {
     event.summary === eventName);
   eventsArray = eventsArray
     .map((event) => {
-      event.start.dateTime = datefns.parseISO(event.start.dateTime);
-      event.end.dateTime = datefns.parseISO(event.end.dateTime);
+      event.start.dateTime = parseISO(event.start.dateTime);
+      event.end.dateTime = parseISO(event.end.dateTime);
       return new Object({ data: event, isEvent: true });
     });
   if (eventsArray.length === 0) {

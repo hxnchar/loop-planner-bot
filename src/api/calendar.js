@@ -1,12 +1,12 @@
 import { google } from 'googleapis';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import {
   format, differenceInHours, parseISO,
   startOfDay, endOfDay,
 } from 'date-fns';
 import { createEventsList } from '../services/helpers.js';
 import Formats from '../bot-helpers/formats.js';
-dotenv.config();
+
 export const calendar = google.calendar({ version: 'v3' });
 const calendar_access = JSON.parse(process.env.CALENDAR_ACCESS);
 export const auth = new google.auth.JWT(

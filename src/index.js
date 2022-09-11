@@ -1,11 +1,13 @@
 import TelegramApi from 'node-telegram-bot-api';
-import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import 'dotenv/config';
 import {
   format, parse,
   startOfWeek, addDays,
   addYears, subYears,
   startOfMonth, endOfMonth, subMonths,
 } from 'date-fns';
+import User from './models/User.js';
 import {
   checkAllDaysPicked,
   generateList,
@@ -19,11 +21,8 @@ import {
 import Commands from './bot-helpers/commands.js';
 import Formats from './bot-helpers/formats.js';
 import Constants from './bot-helpers/constants.js';
-import mongoose from 'mongoose';
-import User from './models/User.js';
 import Settings from './libs/settings.js';
 import Time from './libs/time.js';
-dotenv.config();
 
 const userAction = {
   action: undefined,
