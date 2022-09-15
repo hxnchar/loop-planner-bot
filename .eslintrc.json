@@ -3,22 +3,23 @@
     "browser": true,
     "es2021": true
   },
-  "extends": [
-    "metarhia"
-  ],
+  "extends": ["metarhia"],
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
   "rules": {
-    "max-len": ["error", {
-      "code": 80,
-      "tabWidth": 2,
-      "comments": 80,
-      "ignoreComments": false,
-      "ignoreUrls": true,
-      "ignoreStrings": true,
-      "ignoreTemplateLiterals": true
-    }]
+    "max-len": [
+      "error",
+      {
+        "code": 80,
+        "tabWidth": 2,
+        "comments": 80,
+        "ignoreComments": false,
+        "ignoreUrls": true,
+        "ignoreStrings": true,
+        "ignoreTemplateLiterals": true
+      }
+    ]
   }
 }
