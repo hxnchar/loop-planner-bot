@@ -8,7 +8,8 @@ export class Shift {
     this.timeEnd = timeEnd;
   }
   toString() {
-    return `${this.date}:` +
-      `${this.timeStart.toString()} - ${this.timeEnd.toString()}`;
+    return (
+      `${this.date}: ${this.timeStart.toString()} - ${this.timeEnd.toString()}`
+    );
   }
 }

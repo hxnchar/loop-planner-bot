@@ -1,8 +1,11 @@
 import { google } from 'googleapis';
 import 'dotenv/config';
 import {
-  format, differenceInHours, parseISO,
-  startOfDay, endOfDay,
+  format,
+  differenceInHours,
+  parseISO,
+  startOfDay,
+  endOfDay,
 } from 'date-fns';
 import { createEventsList } from '../services/helpers.js';
 import Formats from '../bot-helpers/formats.js';
@@ -18,14 +21,16 @@ export const auth = new google.auth.JWT(
 
 export const getEventId = async (calendarId, eventName, date) => {
   const timeMin = startOfDay(date),
-        timeMax = endOfDay(date);
-  const response = (await calendar.events.list({
-    auth,
-    calendarId,
-    timeMin,
-    timeMax,
-    timeZone: 'Europe/London',
-  })).data.items.filter((item) => item.summary === eventName)[0];
+    timeMax = endOfDay(date);
+  const response = (
+    await calendar.events.list({
+      auth,
+      calendarId,
+      timeMin,
+      timeMax,
+      timeZone: 'Europe/London',
+    })
+  ).data.items.filter((item) => item.summary === eventName)[0];
   if (!response) {
     throw new Error('No events on this date found');
   }
@@ -35,14 +40,14 @@ export const getEventId = async (calendarId, eventName, date) => {
 export const insertEvent = async (calendarId, { ...props }) => {
   const { eventName, startDate, endDate } = props;
   const event = {
-    'summary': eventName,
-    'start': {
-      'dateTime': startDate,
-      'timeZone': 'Europe/London',
+    summary: eventName,
+    start: {
+      dateTime: startDate,
+      timeZone: 'Europe/London',
     },
-    'end': {
-      'dateTime': endDate,
-      'timeZone': 'Europe/London',
+    end: {
+      dateTime: endDate,
+      timeZone: 'Europe/London',
     },
   };
   const response = await calendar.events.insert({
@@ -92,10 +97,17 @@ export const showShifts = async (calendarId, { ...props }) => {
       event.data.start.dateTime,
       event.data.end.dateTime,
     ];
-    return `<b>${format(startDateTime, Formats.fullDateLong)}</b>: ${format(startDateTime, Formats.time)} - ${format(finishDateTime, Formats.time)}`;
+    return `<b>${format(startDateTime, Formats.fullDateLong)}</b>: ${format(
+      startDateTime,
+      Formats.time,
+    )} - ${format(finishDateTime, Formats.time)}`;
   });
-  responseText =
-    [`There ${countEvents === 1 ? 'is' : 'are'} <b>${countEvents} shift${countEvents === 1 ? '' : 's'}</b> in your calendar:`, ...responseText];
+  responseText = [
+    `There ${countEvents === 1 ? 'is' : 'are'} <b>${countEvents} shift${
+      countEvents === 1 ? '' : 's'
+    }</b> in your calendar:`,
+    ...responseText,
+  ];
   responseText = responseText.join('\n');
   return responseText;
 };
@@ -109,11 +121,14 @@ export const monthlyPayment = async (calendarId, wage, { ...props }) => {
     timeMax: endDate,
     timeZone: 'Europe/London',
   });
-  response = response.data.items.filter((elem) => elem.summary === eventName)
+  response = response.data.items
+    .filter((elem) => elem.summary === eventName)
     .map((elem) =>
       differenceInHours(
         parseISO(elem.end.dateTime),
-        parseISO(elem.start.dateTime)));
+        parseISO(elem.start.dateTime),
+      ),
+    );
   const hours = response.reduce((acc, elem) => acc + elem);
   return wage * hours;
 };
