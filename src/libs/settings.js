@@ -1,5 +1,4 @@
 import deepEqual from 'deep-equal';
-
 export default class Settings {
   preferences = {
     eventName: undefined,
@@ -27,22 +26,12 @@ export default class Settings {
   }
   toString() {
     const result = [];
-    result.push(`📝Event name: <i>${this.preferences.eventName ||
-      '[...]'}</i>;`);
-    result.push(
-      `⏰Event duration: <i>${this.preferences.duration?.toString() ||
-        '[...]'}</i>;`);
-    result.push(
-      `🕒First shift start: <i>${this.preferences.firstShiftStart?.toString() ||
-        '[...]'}</i>;`);
-    result.push(
-      `🕤Second shift start: ` +
-        `<i>${this.preferences.secondShiftStart?.toString() ||
-          '[...]'}</i>;`);
+    result.push(`📝Event name: <i>${this.preferences.eventName || '[...]'}</i>;`);
+    result.push(`⏰Event duration: <i>${this.preferences.duration?.toString() || '[...]'}</i>;`);
+    result.push(`🕒First shift start: <i>${this.preferences.firstShiftStart?.toString() || '[...]'}</i>;`);
+    result.push(`🕤Second shift start: <i>${this.preferences.secondShiftStart?.toString() || '[...]'}</i>;`);
     result.push(`💷Wage: <i>${this.preferences.wage || '[...]'}</i>;`);
-    result.push(`👤Calendar ID: ` +
-      `<i>${this.preferences.calendarID
-        ? Settings.encodeMail(this.preferences.calendarID) : '[...]'}</i>.`);
+    result.push(`👤Calendar ID: <i>${this.preferences.calendarID ? Settings.encodeMail(this.preferences.calendarID) : '[...]'}</i>.`);
     return result.join('\n');
   }
 }

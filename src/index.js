@@ -66,25 +66,19 @@ bot.on('message', async (msg) => {
     switch (msgTxt) {
       case Commands.START:
         return bot.sendMessage(chatId,
-          'Welcome to <b>Loop Planner</b>!' +
-          '\nI can add several same events to your calendar📅' +
-          `\nType ${Commands.SETTINGS} to save some preferences`,
+          `Welcome to <b>Loop Planner</b>!\nI can add several same events to your calendar📅\nType ${Commands.SETTINGS} to save some preferences`,
           {
-            parse_mode: 'HTML',
+            'parse_mode': 'HTML',
           },
         );
       case Commands.NEW_SHIFTS:
         return bot.sendMessage(
           chatId,
-          `Would you like to add shifts to current week` +
-          `<b> [${format(curWeekStart, Formats.dateMonth)} - ` +
-          `${format(curWeekEnd, Formats.dateMonth)}]</b> ` +
-          `or the next <b>[${format(nextWeekStart, Formats.dateMonth)} - ` +
-          `${format(nextWeekEnd, Formats.dateMonth)}]</b>?`,
+          `Would you like to add shifts to current week <b>[${format(curWeekStart, Formats.dateMonth)} - ${format(curWeekEnd, Formats.dateMonth)}]</b> or the next <b>[${format(nextWeekStart, Formats.dateMonth)} - ${format(nextWeekEnd, Formats.dateMonth)}]</b>?`,
           {
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.peekWeek,
+            'parse_mode': 'HTML',
+            'reply_markup': JSON.stringify({
+              'inline_keyboard': InlineKeyboards.peekWeek,
             }),
           });
       case Commands.REMOVE_SHIFTS:
@@ -95,9 +89,9 @@ bot.on('message', async (msg) => {
         return bot.sendMessage(chatId,
           'Shifts from which interval would you like to see?',
           {
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.showShifts,
+            'parse_mode': 'HTML',
+            'reply_markup': JSON.stringify({
+              'inline_keyboard': InlineKeyboards.showShifts,
             }),
           });
       case Commands.CALCULATE_PAYMENT:
@@ -107,11 +101,9 @@ bot.on('message', async (msg) => {
           endDate: curMonthEnd,
         });
         return bot.sendMessage(chatId,
-          `Your salary in this month going to be\n` +
-            `<b>£${response * 100 / 100}</b> without tax\n` +
-            `<b>£${(response * .8) * 100 / 100}</b> tax included`,
+          `Your salary in this month going to be\n<b>£${response * 100 / 100}</b> without tax\n<b>£${(response * .8) * 100 / 100}</b> tax included`,
           {
-            parse_mode: 'HTML',
+            'parse_mode': 'HTML',
           });
       case Commands.SETTINGS:
         if (!curUser) {
@@ -129,9 +121,9 @@ bot.on('message', async (msg) => {
         return bot.sendMessage(chatId,
           `Here's your preferences:\n${settings.toString()}`,
           {
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.settings(),
+            'parse_mode': 'HTML',
+            'reply_markup': JSON.stringify({
+              'inline_keyboard': InlineKeyboards.settings(),
             }),
           });
       default:
@@ -142,11 +134,11 @@ bot.on('message', async (msg) => {
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
               {
-                chat_id: CHAT_ID,
-                message_id: MESSAGE_ID,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                  inline_keyboard: InlineKeyboards.settings(),
+                'chat_id': CHAT_ID,
+                'message_id': MESSAGE_ID,
+                'parse_mode': 'HTML',
+                'reply_markup': JSON.stringify({
+                  'inline_keyboard': InlineKeyboards.settings(),
                 }),
               });
           case Constants.CHANGE_EVENT_DURATION:
@@ -155,11 +147,11 @@ bot.on('message', async (msg) => {
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
               {
-                chat_id: CHAT_ID,
-                message_id: MESSAGE_ID,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                  inline_keyboard: InlineKeyboards.settings(),
+                'chat_id': CHAT_ID,
+                'message_id': MESSAGE_ID,
+                'parse_mode': 'HTML',
+                'reply_markup': JSON.stringify({
+                  'inline_keyboard': InlineKeyboards.settings(),
                 }),
               });
           case Constants.CHANGE_FIRST_SHIFT_START:
@@ -168,11 +160,11 @@ bot.on('message', async (msg) => {
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
               {
-                chat_id: CHAT_ID,
-                message_id: MESSAGE_ID,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                  inline_keyboard: InlineKeyboards.settings(),
+                'chat_id': CHAT_ID,
+                'message_id': MESSAGE_ID,
+                'parse_mode': 'HTML',
+                'reply_markup': JSON.stringify({
+                  'inline_keyboard': InlineKeyboards.settings(),
                 }),
               });
           case Constants.CHANGE_SECOND_SHIFT_START:
@@ -182,11 +174,11 @@ bot.on('message', async (msg) => {
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
               {
-                chat_id: CHAT_ID,
-                message_id: MESSAGE_ID,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                  inline_keyboard: InlineKeyboards.settings(),
+                'chat_id': CHAT_ID,
+                'message_id': MESSAGE_ID,
+                'parse_mode': 'HTML',
+                'reply_markup': JSON.stringify({
+                  'inline_keyboard': InlineKeyboards.settings(),
                 }),
               });
           case Constants.CHANGE_WAGE:
@@ -195,11 +187,11 @@ bot.on('message', async (msg) => {
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
               {
-                chat_id: CHAT_ID,
-                message_id: MESSAGE_ID,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                  inline_keyboard: InlineKeyboards.settings(),
+                'chat_id': CHAT_ID,
+                'message_id': MESSAGE_ID,
+                'parse_mode': 'HTML',
+                'reply_markup': JSON.stringify({
+                  'inline_keyboard': InlineKeyboards.settings(),
                 }),
               });
           case Constants.CHANGE_CALENDAR_ID:
@@ -208,11 +200,11 @@ bot.on('message', async (msg) => {
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
               {
-                chat_id: CHAT_ID,
-                message_id: MESSAGE_ID,
-                parse_mode: 'HTML',
-                reply_markup: JSON.stringify({
-                  inline_keyboard: InlineKeyboards.settings(),
+                'chat_id': CHAT_ID,
+                'message_id': MESSAGE_ID,
+                'parse_mode': 'HTML',
+                'reply_markup': JSON.stringify({
+                  'inline_keyboard': InlineKeyboards.settings(),
                 }),
               });
         }
@@ -221,10 +213,9 @@ bot.on('message', async (msg) => {
           if (actionDate.toString() === 'Invalid Date') {
             actionDate = null;
             return bot.sendMessage(chatId,
-              `Provide date in the following format: ` +
-                `<i>${format(curDate, Formats.fullDateShort)}</i>`,
+              `Provide date in the following format: <i>${format(curDate, Formats.fullDateShort)}</i>`,
               {
-                parse_mode: 'HTML',
+                'parse_mode': 'HTML',
               });
           }
           eventId = await getEventId(
@@ -269,43 +260,38 @@ bot.on('callback_query', async (msg) => {
     switch (data) {
       case Constants.CURRENT_WEEK:
         return bot.sendMessage(chatId,
-          `Provide the dates you would like to work ` +
-          `<b>[${format(curWeekStart, Formats.dateMonth)} - ` +
-          `${format(curWeekEnd, Formats.dateMonth)}]</b>:`, {
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.printWeek(curWeekStart),
+          `Provide the dates you would like to work <b>[${format(curWeekStart, Formats.dateMonth)} - ${format(curWeekEnd, Formats.dateMonth)}]</b>:`, {
+            'parse_mode': 'HTML',
+            'reply_markup': JSON.stringify({
+              'inline_keyboard': InlineKeyboards.printWeek(curWeekStart),
             }),
           });
       case Constants.NEXT_WEEK:
         return bot.sendMessage(chatId,
-          `Provide the dates you would like to work ` +
-          `<b>[${format(nextWeekStart, Formats.dateMonth)} - ` +
-          `${format(nextWeekEnd, Formats.dateMonth)}]</b>:`, {
-            parse_mode: 'HTML',
-            reply_markup: JSON.stringify({
-              inline_keyboard: InlineKeyboards.printWeek(nextWeekStart),
+          `Provide the dates you would like to work <b>[${format(nextWeekStart, Formats.dateMonth)} - ${format(nextWeekEnd, Formats.dateMonth)}]</b>:`, {
+            'parse_mode': 'HTML',
+            'reply_markup': JSON.stringify({
+              'inline_keyboard': InlineKeyboards.printWeek(nextWeekStart),
             }),
           });
       case Constants.RESET_DAYS:
         return bot.editMessageReplyMarkup({
-          inline_keyboard: InlineKeyboards.resetDays(
+          'inline_keyboard': InlineKeyboards.resetDays(
             keyboard),
         },
         {
-          chat_id: chatId,
-          message_id: msgId,
+          'chat_id': chatId,
+          'message_id': msgId,
         },
         );
       case Constants.SUBMIT_DAYS:
         datesForEvents = getDaysFromKeyboard(
           keyboard);
         return bot.sendMessage(chatId,
-          `Provide shifts for each day:`,
+          'Provide shifts for each day:',
           {
-            reply_markup: JSON.stringify({
-              resize_keyboard: true,
-              inline_keyboard: InlineKeyboards.peekTime(datesForEvents),
+            'reply_markup': JSON.stringify({
+              'inline_keyboard': InlineKeyboards.peekTime(datesForEvents),
             }),
           });
       case Constants.SUBMIT_TIME:
@@ -330,8 +316,7 @@ bot.on('callback_query', async (msg) => {
                 `✅Event on ${formatted} created successfully`);
             } else {
               await bot.sendMessage(chatId,
-                `🚫Event on ${formatted} ` +
-                  `creation failed: Status ${response.status} :(`);
+                `🚫Event on ${formatted} creation failed: Status ${response.status} :(`);
             }
           });
         } else {
@@ -379,8 +364,8 @@ bot.on('callback_query', async (msg) => {
         if (settingsChanged) {
           await bot.editMessageReplyMarkup({},
             {
-              chat_id: CHAT_ID,
-              message_id: MESSAGE_ID,
+              'chat_id': CHAT_ID,
+              'message_id': MESSAGE_ID,
             });
           return bot.sendMessage(chatId, 'Settings updated successfully✅')
             .then(settingsChanged = false);
@@ -397,7 +382,7 @@ bot.on('callback_query', async (msg) => {
           eventName: curUser.eventName,
         });
         return bot.sendMessage(chatId, response, {
-          parse_mode: 'HTML',
+          'parse_mode': 'HTML',
         });
       case Constants.CURRENT_AND_PREVIOUS:
         [startDate, endDate] = [
@@ -410,7 +395,7 @@ bot.on('callback_query', async (msg) => {
           eventName: curUser.eventName,
         });
         return bot.sendMessage(chatId, response, {
-          parse_mode: 'HTML',
+          'parse_mode': 'HTML',
         });
       case Constants.ALL_SHIFTS_LIST:
         [startDate, endDate] = [
@@ -423,29 +408,29 @@ bot.on('callback_query', async (msg) => {
           eventName: curUser.eventName,
         });
         return bot.sendMessage(chatId, response, {
-          parse_mode: 'HTML',
+          'parse_mode': 'HTML',
         });
       default:
         if (data.includes('EVENT_DATE')) {
           const dateToTick = data.split(':')[1];
           return bot.editMessageReplyMarkup({
-            inline_keyboard: InlineKeyboards.tickDay(
+            'inline_keyboard': InlineKeyboards.tickDay(
               keyboard, dateToTick),
           },
           {
-            chat_id: chatId,
-            message_id: msgId,
+            'chat_id': chatId,
+            'message_id': msgId,
           });
         }
         if (data.includes('TIME_NOT_PICKED')) {
           const dateToChange = data.split(':')[1];
           return bot.editMessageReplyMarkup({
-            inline_keyboard: InlineKeyboards.changeShift(
+            'inline_keyboard': InlineKeyboards.changeShift(
               keyboard, dateToChange),
           },
           {
-            chat_id: chatId,
-            message_id: msgId,
+            'chat_id': chatId,
+            'message_id': msgId,
           });
         }
         return bot.sendMessage(chatId, 'Invalid command, try again👀');

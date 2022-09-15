@@ -8,16 +8,17 @@ import { createEventsList } from '../services/helpers.js';
 import Formats from '../bot-helpers/formats.js';
 
 export const calendar = google.calendar({ version: 'v3' });
-const calendar_access = JSON.parse(process.env.CALENDAR_ACCESS);
+const calendarAccess = JSON.parse(process.env.calendarAccess);
 export const auth = new google.auth.JWT(
-  calendar_access.client_email,
+  calendarAccess.client_email,
   null,
-  calendar_access.private_key,
+  calendarAccess.private_key,
   'https://www.googleapis.com/auth/calendar',
 );
 
 export const getEventId = async (calendarId, eventName, date) => {
-  const [timeMin, timeMax] = [startOfDay(date), endOfDay(date)];
+  const timeMin = startOfDay(date),
+        timeMax = endOfDay(date);
   const response = (await calendar.events.list({
     auth,
     calendarId,
@@ -91,14 +92,10 @@ export const showShifts = async (calendarId, { ...props }) => {
       event.data.start.dateTime,
       event.data.end.dateTime,
     ];
-    return `<b>${format(startDateTime, Formats.fullDateLong)}</b>: ` +
-        `${format(startDateTime, Formats.time)} - ` +
-        `${format(finishDateTime, Formats.time)}`;
+    return `<b>${format(startDateTime, Formats.fullDateLong)}</b>: ${format(startDateTime, Formats.time)} - ${format(finishDateTime, Formats.time)}`;
   });
   responseText =
-    [`There ${countEvents === 1 ? 'is' : 'are'} ` +
-      `<b>${countEvents} shift${countEvents === 1 ? '' : 's'}</b> ` +
-        `in your calendar:`, ...responseText];
+    [`There ${countEvents === 1 ? 'is' : 'are'} <b>${countEvents} shift${countEvents === 1 ? '' : 's'}</b> in your calendar:`, ...responseText];
   responseText = responseText.join('\n');
   return responseText;
 };
