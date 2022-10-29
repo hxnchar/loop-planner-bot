@@ -1,12 +1,12 @@
 import deepEqual from 'deep-equal';
 export default class Settings {
   preferences = {
-    eventName: undefined,
-    duration: undefined,
-    firstShiftStart: undefined,
-    secondShiftStart: undefined,
-    wage: undefined,
-    calendarID: undefined,
+    'eventName': undefined,
+    'duration': undefined,
+    'firstShiftStart': undefined,
+    'secondShiftStart': undefined,
+    'wage': undefined,
+    'calendarID': undefined,
   };
   constructor(props = {}) {
     this.preferences = { ...this.preferences, ...props };

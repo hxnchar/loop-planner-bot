@@ -7,28 +7,28 @@ export default class Commands {
   static SETTINGS = '/settings';
   static list = [
     {
-      command: Commands.START,
-      description: 'Initial command',
+      'command': Commands.START,
+      'description': 'Initial command',
     },
     {
-      command: Commands.NEW_SHIFTS,
-      description: 'Add new shifts to your schedule',
+      'command': Commands.NEW_SHIFTS,
+      'description': 'Add new shifts to your schedule',
     },
     {
-      command: Commands.REMOVE_SHIFTS,
-      description: 'Removes shift from your schedule',
+      'command': Commands.REMOVE_SHIFTS,
+      'description': 'Removes shift from your schedule',
     },
     {
-      command: Commands.SHOW_SHIFTS,
-      description: 'Shows the full list of your shifts',
+      'command': Commands.SHOW_SHIFTS,
+      'description': 'Shows the full list of your shifts',
     },
     {
-      command: Commands.CALCULATE_PAYMENT,
-      description: 'Calculates salary for the last month',
+      'command': Commands.CALCULATE_PAYMENT,
+      'description': 'Calculates salary for the last month',
     },
     {
-      command: Commands.SETTINGS,
-      description: 'Edit your preferences',
+      'command': Commands.SETTINGS,
+      'description': 'Edit your preferences',
     },
   ];
 }

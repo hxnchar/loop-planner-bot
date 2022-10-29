@@ -4,59 +4,59 @@ import { dateToLongMsg, dateToShortMsg } from '../services/helpers.js';
 
 export default class InlineKeyboards {
   static peekWeek = [
-    [{ text: 'current', 'callback_data': Constants.CURRENT_WEEK }],
-    [{ text: 'next', 'callback_data': Constants.NEXT_WEEK }],
+    [{ 'text': 'current', 'callback_data': Constants.CURRENT_WEEK }],
+    [{ 'text': 'next', 'callback_data': Constants.NEXT_WEEK }],
   ];
   static showShifts = [
-    [{ text: '➡️This month', 'callback_data': Constants.THIS_MONTH_SHIFTS }],
+    [{ 'text': '➡️This month', 'callback_data': Constants.THIS_MONTH_SHIFTS }],
     [
       {
-        text: '🔄Current + previous',
+        'text': '🔄Current + previous',
         'callback_data': Constants.CURRENT_AND_PREVIOUS,
       },
     ],
-    [{ text: '↔️All shifts list', 'callback_data': Constants.ALL_SHIFTS_LIST }],
+    [{ 'text': '↔️All shifts list', 'callback_data': Constants.ALL_SHIFTS_LIST }],
   ];
   static settings = () => [
     [
       {
-        text: '📝Event name [string]',
+        'text': '📝Event name [string]',
         'callback_data': Constants.CHANGE_EVENT_NAME,
       },
     ],
     [
       {
-        text: '⏰Event duration [time]',
+        'text': '⏰Event duration [time]',
         'callback_data': Constants.CHANGE_EVENT_DURATION,
       },
     ],
     [
       {
-        text: '🕒First shift start [time]',
+        'text': '🕒First shift start [time]',
         'callback_data': Constants.CHANGE_FIRST_SHIFT_START,
       },
     ],
     [
       {
-        text: '🕤Second shift start [time]',
+        'text': '🕤Second shift start [time]',
         'callback_data': Constants.CHANGE_SECOND_SHIFT_START,
       },
     ],
     [
       {
-        text: '💷Wage [double]',
+        'text': '💷Wage [double]',
         'callback_data': Constants.CHANGE_WAGE,
       },
     ],
     [
       {
-        text: '👤Calendar ID [string]',
+        'text': '👤Calendar ID [string]',
         'callback_data': Constants.CHANGE_CALENDAR_ID,
       },
     ],
     [
       {
-        text: '✅Submit',
+        'text': '✅Submit',
         'callback_data': Constants.SUBMIT_SETTINGS,
       },
     ],
@@ -73,7 +73,7 @@ export default class InlineKeyboards {
           firstDate,
         )}`;
         tempArr.push({
-          text: `${newText}`,
+          'text': `${newText}`,
           'callback_data': `EVENT_DATE:${dateToLongMsg(firstDate)}`,
         });
         firstDate = datefns.addDays(new Date(firstDate), 1);
@@ -83,10 +83,10 @@ export default class InlineKeyboards {
     }
     res
       .at(res.length - 1)
-      .splice(0, 0, { text: '🔄', 'callback_data': Constants.RESET_DAYS });
+      .splice(0, 0, { 'text': '🔄', 'callback_data': Constants.RESET_DAYS });
     res
       .at(res.length - 1)
-      .push({ text: '▶️', 'callback_data': Constants.SUBMIT_DAYS });
+      .push({ 'text': '▶️', 'callback_data': Constants.SUBMIT_DAYS });
     return res;
   }
   static tickDay(markup, date) {
@@ -126,7 +126,7 @@ export default class InlineKeyboards {
           break;
         }
         tempRes.push({
-          text: `${days[i]}`,
+          'text': `${days[i]}`,
           'callback_data': `TIME_NOT_PICKED:${days[i]}`,
         });
         i++;
@@ -135,7 +135,7 @@ export default class InlineKeyboards {
     }
     res.push([
       {
-        text: `SUBMIT✅`,
+        'text': `SUBMIT✅`,
         'callback_data': Constants.SUBMIT_TIME,
       },
     ]);

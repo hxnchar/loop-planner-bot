@@ -90,7 +90,7 @@ export const createEventsList = (eventsArray, eventName) => {
   eventsArray = eventsArray.map((event) => {
     event.start.dateTime = parseISO(event.start.dateTime);
     event.end.dateTime = parseISO(event.end.dateTime);
-    return new Object({ data: event, isEvent: true });
+    return { 'data': event, 'isEvent': true };
   });
   if (eventsArray.length === 0) {
     throw new Error('No suitable events in this interval');
@@ -111,13 +111,18 @@ export const createEventsList = (eventsArray, eventName) => {
       if (
         eventsArray[i - 1].data.start.dateTime < currentDate &&
         currentDate < eventsArray[i].data.start.dateTime
-      ) { indexToInsert = i; }
+      ) {
+        indexToInsert = i;
+      }
     }
   }
   eventsArray.splice(
     indexToInsert,
     0,
-    new Object({ data: '<i>————— now —————</i>', isEvent: false }),
+    {
+      'data': '<i>————— now —————</i>',
+      'isEvent': false,
+    },
   );
   return eventsArray;
 };

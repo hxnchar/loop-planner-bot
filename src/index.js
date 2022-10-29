@@ -25,8 +25,8 @@ import Settings from './libs/settings.js';
 import Time from './libs/time.js';
 
 const userAction = {
-  action: undefined,
-  date: undefined,
+  'action': undefined,
+  'date': undefined,
 };
 
 let CHAT_ID;
@@ -42,7 +42,7 @@ await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.D
     console.log('DB connected succsessfully');
   },
   (e) => console.log(e));
-const bot = new TelegramApi(process.env.BOT_TOKEN, { polling: true });
+const bot = new TelegramApi(process.env.BOT_TOKEN, { 'polling': true });
 
 await bot.setMyCommands(Commands.list);
 
@@ -51,7 +51,7 @@ bot.on('message', async (msg) => {
   curUser = await User.findOne({ userId });
   const curDate = new Date();
   const curWeekStart =
-    startOfWeek(curDate, { weekStartsOn: 1 });
+    startOfWeek(curDate, { 'weekStartsOn': 1 });
   const nextWeekStart = addDays(curWeekStart, 7);
   const [curWeekEnd, nextWeekEnd] = [
     addDays(curWeekStart, 6),
@@ -96,9 +96,9 @@ bot.on('message', async (msg) => {
           });
       case Commands.CALCULATE_PAYMENT:
         response = await monthlyPayment(curUser.calendarID, curUser.wage, {
-          eventName: curUser.eventName,
-          startDate: curMonthStart,
-          endDate: curMonthEnd,
+          'eventName': curUser.eventName,
+          'startDate': curMonthStart,
+          'endDate': curMonthEnd,
         });
         return bot.sendMessage(chatId,
           `Your salary in this month going to be\n<b>£${response * 100 / 100}</b> without tax\n<b>£${(response * .8) * 100 / 100}</b> tax included`,
@@ -110,12 +110,12 @@ bot.on('message', async (msg) => {
           curUser = await User.create({ userId });
         }
         settings = new Settings({
-          eventName: curUser.eventName,
-          duration: curUser.duration,
-          firstShiftStart: curUser.firstShiftStart,
-          secondShiftStart: curUser.secondShiftStart,
-          wage: curUser.wage,
-          calendarID: curUser.calendarID,
+          'eventName': curUser.eventName,
+          'duration': curUser.duration,
+          'firstShiftStart': curUser.firstShiftStart,
+          'secondShiftStart': curUser.secondShiftStart,
+          'wage': curUser.wage,
+          'calendarID': curUser.calendarID,
         });
         CHAT_ID = chatId;
         return bot.sendMessage(chatId,
@@ -129,7 +129,7 @@ bot.on('message', async (msg) => {
       default:
         switch (userAction.action) {
           case Constants.CHANGE_EVENT_NAME:
-            settingsChanged = settings.update({ eventName: msgTxt });
+            settingsChanged = settings.update({ 'eventName': msgTxt });
             userAction.action = null;
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
@@ -142,7 +142,7 @@ bot.on('message', async (msg) => {
                 }),
               });
           case Constants.CHANGE_EVENT_DURATION:
-            settingsChanged = settings.update({ duration: Time.parse(msgTxt) });
+            settingsChanged = settings.update({ 'duration': Time.parse(msgTxt) });
             userAction.action = null;
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
@@ -155,7 +155,7 @@ bot.on('message', async (msg) => {
                 }),
               });
           case Constants.CHANGE_FIRST_SHIFT_START:
-            settingsChanged = settings.update({ duration: Time.parse(msgTxt) });
+            settingsChanged = settings.update({ 'duration': Time.parse(msgTxt) });
             userAction.action = null;
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
@@ -169,7 +169,7 @@ bot.on('message', async (msg) => {
               });
           case Constants.CHANGE_SECOND_SHIFT_START:
             settingsChanged =
-              settings.update({ secondShiftStart: Time.parse(msgTxt) });
+              settings.update({ 'secondShiftStart': Time.parse(msgTxt) });
             userAction.action = null;
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
@@ -182,7 +182,7 @@ bot.on('message', async (msg) => {
                 }),
               });
           case Constants.CHANGE_WAGE:
-            settingsChanged = settings.update({ wage: parseFloat(msgTxt) });
+            settingsChanged = settings.update({ 'wage': parseFloat(msgTxt) });
             userAction.action = null;
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
@@ -195,7 +195,7 @@ bot.on('message', async (msg) => {
                 }),
               });
           case Constants.CHANGE_CALENDAR_ID:
-            settingsChanged = settings.update({ calendarID: msgTxt });
+            settingsChanged = settings.update({ 'calendarID': msgTxt });
             userAction.action = null;
             return bot.editMessageText(
               `Here's your preferences:\n${settings.toString()}`,
@@ -247,7 +247,7 @@ bot.on('callback_query', async (msg) => {
   curUser = await User.findOne({ userId });
   const curDate = new Date();
   const curWeekStart =
-    startOfWeek(curDate, { weekStartsOn: 1 });
+    startOfWeek(curDate, { 'weekStartsOn': 1 });
   const nextWeekStart = addDays(curWeekStart, 7);
   const [curWeekEnd, nextWeekEnd] = [
     addDays(curWeekStart, 6),
@@ -306,7 +306,7 @@ bot.on('callback_query', async (msg) => {
               parse(endDate,
                 `${Formats.dateMonth} ${Formats.time}`, new Date());
             response = await insertEvent(curUser.calendarID, {
-              eventName: curUser.eventName,
+              'eventName': curUser.eventName,
               startDate,
               endDate,
             });
@@ -379,7 +379,7 @@ bot.on('callback_query', async (msg) => {
         response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
-          eventName: curUser.eventName,
+          'eventName': curUser.eventName,
         });
         return bot.sendMessage(chatId, response, {
           'parse_mode': 'HTML',
@@ -392,7 +392,7 @@ bot.on('callback_query', async (msg) => {
         response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
-          eventName: curUser.eventName,
+          'eventName': curUser.eventName,
         });
         return bot.sendMessage(chatId, response, {
           'parse_mode': 'HTML',
@@ -405,7 +405,7 @@ bot.on('callback_query', async (msg) => {
         response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
-          eventName: curUser.eventName,
+          'eventName': curUser.eventName,
         });
         return bot.sendMessage(chatId, response, {
           'parse_mode': 'HTML',
