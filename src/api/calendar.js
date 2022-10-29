@@ -10,7 +10,7 @@ import {
 import { createEventsList } from '../services/helpers.js';
 import Formats from '../bot-helpers/formats.js';
 
-export const calendar = google.calendar({ version: 'v3' });
+export const calendar = google.calendar({ 'version': 'v3' });
 const calendarAccess = JSON.parse(process.env.calendarAccess);
 export const auth = new google.auth.JWT(
   calendarAccess.client_email,
@@ -21,14 +21,14 @@ export const auth = new google.auth.JWT(
 
 export const getEventId = async (calendarId, eventName, date) => {
   const timeMin = startOfDay(date),
-    timeMax = endOfDay(date);
+        timeMax = endOfDay(date);
   const response = (
     await calendar.events.list({
       auth,
       calendarId,
       timeMin,
       timeMax,
-      timeZone: 'Europe/London',
+      'timeZone': process.env.TIMEZONE,
     })
   ).data.items.filter((item) => item.summary === eventName)[0];
   if (!response) {
@@ -40,20 +40,20 @@ export const getEventId = async (calendarId, eventName, date) => {
 export const insertEvent = async (calendarId, { ...props }) => {
   const { eventName, startDate, endDate } = props;
   const event = {
-    summary: eventName,
-    start: {
-      dateTime: startDate,
-      timeZone: 'Europe/London',
+    'summary': eventName,
+    'start': {
+      'dateTime': startDate,
+      'timeZone': process.env.TIMEZONE,
     },
-    end: {
-      dateTime: endDate,
-      timeZone: 'Europe/London',
+    'end': {
+      'dateTime': endDate,
+      'timeZone': process.env.TIMEZONE,
     },
   };
   const response = await calendar.events.insert({
     auth,
     calendarId,
-    resource: event,
+    'resource': event,
   });
   return response;
 };
@@ -75,9 +75,9 @@ export const showShifts = async (calendarId, { ...props }) => {
   const response = await calendar.events.list({
     auth,
     calendarId,
-    timeMin: startDate,
-    timeMax: endDate,
-    timeZone: 'Europe/London',
+    'timeMin': startDate,
+    'timeMax': endDate,
+    'timeZone': process.env.TIMEZONE,
   });
   if (response.data.items.length === 0) {
     throw new Error('No events in this period😕');
@@ -117,9 +117,9 @@ export const monthlyPayment = async (calendarId, wage, { ...props }) => {
   let response = await calendar.events.list({
     auth,
     calendarId,
-    timeMin: startDate,
-    timeMax: endDate,
-    timeZone: 'Europe/London',
+    'timeMin': startDate,
+    'timeMax': endDate,
+    'timeZone': process.env.TIMEZONE,
   });
   response = response.data.items
     .filter((elem) => elem.summary === eventName)
