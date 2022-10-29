@@ -29,6 +29,7 @@ const userAction = {
   'date': undefined,
 };
 
+let DB_ERROR = null;
 let CHAT_ID;
 let MESSAGE_ID;
 let settings = new Settings();
@@ -37,17 +38,26 @@ let curUser;
 let deleteEvent;
 let actionDate;
 
-await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
-  () => {
-    console.log('DB connected succsessfully');
-  },
-  (e) => console.log(e));
 const bot = new TelegramApi(process.env.BOT_TOKEN, { 'polling': true });
 
 await bot.setMyCommands(Commands.list);
 
+await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.echufqm.mongodb.net/?retryWrites=true&w=majority`,
+  () => {
+    console.log('DB connected succsessfully');
+    DB_ERROR = null;
+  },
+  (e) => {
+    DB_ERROR = e;
+  });
+
 bot.on('message', async (msg) => {
   const [msgTxt, chatId, userId] = [msg.text, msg.chat.id, msg.from.id];
+  if (DB_ERROR) {
+    return bot.sendMessage(chatId,
+      `There is some error with the database so u won't be able to use this bot :(\n${DB_ERROR}`,
+    );
+  }
   curUser = await User.findOne({ userId });
   const curDate = new Date();
   const curWeekStart =
