@@ -52,7 +52,9 @@ await mongoose.connect(`mongodb+srv://${process.env.DB_USERNAME}:${process.env.D
   });
 
 bot.on('message', async (msg) => {
-  const [msgTxt, chatId, userId] = [msg.text, msg.chat.id, msg.from.id];
+  const msgTxt = msg.text,
+        chatId = msg.chat.id,
+        userId = msg.from.id;
   if (DB_ERROR) {
     return bot.sendMessage(chatId,
       `There is some error with the database so u won't be able to use this bot :(\n${DB_ERROR}`,
@@ -63,14 +65,10 @@ bot.on('message', async (msg) => {
   const curWeekStart =
     startOfWeek(curDate, { 'weekStartsOn': 1 });
   const nextWeekStart = addDays(curWeekStart, 7);
-  const [curWeekEnd, nextWeekEnd] = [
-    addDays(curWeekStart, 6),
-    addDays(nextWeekStart, 6),
-  ];
-  const [curMonthStart, curMonthEnd] = [
-    startOfMonth(curDate),
-    endOfMonth(curDate),
-  ];
+  const curWeekEnd = addDays(curWeekStart, 6),
+        nextWeekEnd = addDays(nextWeekStart, 6),
+        curMonthStart = startOfMonth(curDate),
+        curMonthEnd = endOfMonth(curDate);
   let response, eventId;
   try {
     switch (msgTxt) {
@@ -256,13 +254,10 @@ bot.on('callback_query', async (msg) => {
   ];
   curUser = await User.findOne({ userId });
   const curDate = new Date();
-  const curWeekStart =
-    startOfWeek(curDate, { 'weekStartsOn': 1 });
-  const nextWeekStart = addDays(curWeekStart, 7);
-  const [curWeekEnd, nextWeekEnd] = [
-    addDays(curWeekStart, 6),
-    addDays(nextWeekStart, 6),
-  ];
+  const curWeekStart = startOfWeek(curDate, { 'weekStartsOn': 1 }),
+        curWeekEnd = addDays(curWeekStart, 6),
+        nextWeekStart = addDays(curWeekStart, 7),
+        nextWeekEnd = addDays(nextWeekStart, 6);
   let startDate, endDate;
   let datesForEvents, dateTimeList;
   let response, formatted;
@@ -382,10 +377,8 @@ bot.on('callback_query', async (msg) => {
         }
         return bot.sendMessage(chatId, 'You didn\'t change anything😐');
       case Constants.THIS_MONTH_SHIFTS:
-        [startDate, endDate] = [
-          startOfMonth(curDate),
-          endOfMonth(curDate),
-        ];
+        startDate = startOfMonth(curDate);
+        endDate = endOfMonth(curDate);
         response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
@@ -395,10 +388,8 @@ bot.on('callback_query', async (msg) => {
           'parse_mode': 'HTML',
         });
       case Constants.CURRENT_AND_PREVIOUS:
-        [startDate, endDate] = [
-          subMonths(startOfMonth(curDate), 1),
-          endOfMonth(curDate),
-        ];
+        startDate = subMonths(startOfMonth(curDate), 1);
+        endDate = endOfMonth(curDate);
         response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
@@ -408,10 +399,8 @@ bot.on('callback_query', async (msg) => {
           'parse_mode': 'HTML',
         });
       case Constants.ALL_SHIFTS_LIST:
-        [startDate, endDate] = [
-          subYears(curDate, 5),
-          addYears(curDate, 5),
-        ];
+        startDate = subYears(curDate, 5);
+        endDate = addYears(curDate, 5);
         response = await showShifts(curUser.calendarID, {
           startDate,
           endDate,
