@@ -22,22 +22,22 @@ export const auth = new google.auth.JWT(
 export const getEventId = async (calendarId, eventName, date) => {
   const timeMin = startOfDay(date),
         timeMax = endOfDay(date);
-  const response = (
-    await calendar.events.list({
-      auth,
-      calendarId,
-      timeMin,
-      timeMax,
-      'timeZone': process.env.TIMEZONE,
-    })
-  ).data.items.filter((item) => item.summary === eventName)[0];
+  let response = await calendar.events.list({
+    auth,
+    calendarId,
+    timeMin,
+    timeMax,
+    'timeZone': process.env.TIMEZONE,
+  });
   if (!response) {
     throw new Error('No events on this date found');
   }
+  response =
+    response.data.items.filter((item) => item.summary === eventName)[0];
   return response.id;
 };
 
-export const insertEvent = async (calendarId, { ...props }) => {
+export const insertEvent = async (calendarId, props) => {
   const { eventName, startDate, endDate } = props;
   const event = {
     'summary': eventName,
@@ -70,7 +70,7 @@ export const removeEvent = async (calendarId, eventId) => {
   return response;
 };
 
-export const showShifts = async (calendarId, { ...props }) => {
+export const showShifts = async (calendarId, props) => {
   const { eventName, startDate, endDate } = props;
   const response = await calendar.events.list({
     auth,
@@ -112,7 +112,7 @@ export const showShifts = async (calendarId, { ...props }) => {
   return responseText;
 };
 
-export const monthlyPayment = async (calendarId, wage, { ...props }) => {
+export const monthlyPayment = async (calendarId, wage, props) => {
   const { eventName, startDate, endDate } = props;
   let response = await calendar.events.list({
     auth,
