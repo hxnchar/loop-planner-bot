@@ -1,6 +1,8 @@
-export default class Formats {
-  static time = 'HH:mm';
-  static fullDateShort = 'dd.LL.yy';
-  static fullDateLong = 'dd.LL.yyyy';
-  static dateMonth = 'ddLLL';
-}
+const Formats = {
+  'time': 'HH:mm',
+  'fullDateShort': 'dd.LL.yy',
+  'fullDateLong': 'dd.LL.yyyy',
+  'dateMonth': 'ddLLL',
+};
+
+export { Formats };

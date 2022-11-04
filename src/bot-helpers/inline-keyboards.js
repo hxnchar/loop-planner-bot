@@ -7,6 +7,7 @@ export default class InlineKeyboards {
     [{ 'text': 'current', 'callback_data': Constants.CURRENT_WEEK }],
     [{ 'text': 'next', 'callback_data': Constants.NEXT_WEEK }],
   ];
+
   static showShifts = [
     [{ 'text': '➡️This month', 'callback_data': Constants.THIS_MONTH_SHIFTS }],
     [
@@ -17,6 +18,7 @@ export default class InlineKeyboards {
     ],
     [{ 'text': '↔️All shifts list', 'callback_data': Constants.ALL_SHIFTS_LIST }],
   ];
+
   static settings = () => [
     [
       {
@@ -61,6 +63,7 @@ export default class InlineKeyboards {
       },
     ],
   ];
+
   static printWeek(firstDate, dateToTick) {
     let curDay = 0;
     const res = [];
@@ -89,6 +92,7 @@ export default class InlineKeyboards {
       .push({ 'text': '▶️', 'callback_data': Constants.SUBMIT_DAYS });
     return res;
   }
+
   static tickDay(markup, date) {
     const tickedDate = `✅ ${date}`;
     for (let i = 0; i < markup.length; i++) {
@@ -102,6 +106,7 @@ export default class InlineKeyboards {
     }
     return markup;
   }
+
   static resetDays(markup) {
     for (let i = 0; i < markup.length; i++) {
       for (let j = 0; j < markup[i].length; j++) {
@@ -112,6 +117,7 @@ export default class InlineKeyboards {
     }
     return markup;
   }
+
   static peekTime(days) {
     const res = [];
     const daysInRow = 2;
@@ -141,27 +147,24 @@ export default class InlineKeyboards {
     ]);
     return res;
   }
+
   static changeShift(markup, dateToChange) {
     for (let i = 0; i < markup.length; i++) {
       for (let j = 0; j < markup[i].length; j++) {
-        if (markup[i][j].text.includes(dateToChange)) {
-          if (markup[i][j].text.includes(dateToChange)) {
-            if (markup[i][j].text.startsWith(Constants.DAY_SYMBOL)) {
-              markup[i][j].text = `${Constants.NIGHT_SYMBOL}${markup[i][
-                j
-              ].text.slice(1)}`;
-              return markup;
-            }
-            if (markup[i][j].text.startsWith(Constants.NIGHT_SYMBOL)) {
-              markup[i][j].text = `${Constants.DAY_SYMBOL}${markup[i][
-                j
-              ].text.slice(1)}`;
-              return markup;
-            }
-            markup[i][j].text = `${Constants.DAY_SYMBOL}${markup[i][j].text}`;
-            return markup;
-          }
+        const buttonText = markup[i][j].text;
+        if (buttonText.includes(dateToChange) &&
+        buttonText.startsWith(Constants.DAY_SYMBOL)) {
+          markup[i][j].text =
+            `${Constants.NIGHT_SYMBOL}${markup[i][j].text.slice(1)}`;
+          return markup;
         }
+        if (buttonText.startsWith(Constants.NIGHT_SYMBOL)) {
+          markup[i][j].text =
+            `${Constants.DAY_SYMBOL}${markup[i][j].text.slice(1)}`;
+          return markup;
+        }
+        markup[i][j].text = `${Constants.DAY_SYMBOL}${markup[i][j].text}`;
+        return markup;
       }
     }
     return markup;

@@ -8,15 +8,18 @@ export default class Settings {
     'wage': undefined,
     'calendarID': undefined,
   };
+
   constructor(props = {}) {
     this.preferences = { ...this.preferences, ...props };
   }
+
   update(props) {
     const oldPreferences = this.preferences;
     this.preferences = { ...this.preferences, ...props };
     const newPreferences = this.preferences;
     return !deepEqual(oldPreferences, newPreferences);
   }
+
   static encodeMail(text) {
     const splitted = text.split('@');
     const base = splitted[0];
@@ -26,6 +29,7 @@ export default class Settings {
       `@${splitted[1]}`
     );
   }
+
   toString() {
     const result = [];
     result.push(

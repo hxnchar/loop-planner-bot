@@ -2,6 +2,7 @@ export default class Time {
   hours;
   minutes;
   nextDay;
+
   constructor(hours, minutes = 0, nextDay = false) {
     if (hours < 0 || hours > 24) {
       throw new Error('Hours must be between 0 and 24');
@@ -13,6 +14,7 @@ export default class Time {
     this.minutes = minutes;
     this.nextDay = nextDay;
   }
+
   static parse(str) {
     str = str?.trim();
     let time = null;
@@ -36,9 +38,11 @@ export default class Time {
     }
     return time;
   }
+
   static formatNum(num) {
     return num < 10 ? `0${num}` : `${num}`;
   }
+
   add(time) {
     let newHours = this.hours + time.hours;
     let newMinutes = this.minutes + time.minutes;
@@ -52,6 +56,7 @@ export default class Time {
     }
     return new Time(newHours, newMinutes, this.nextDay);
   }
+
   toString() {
     return `${Time.formatNum(this.hours)}:${Time.formatNum(this.minutes)}`;
   }

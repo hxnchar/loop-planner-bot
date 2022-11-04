@@ -65,7 +65,7 @@ export const removeEvent = async (calendarId, eventId) => {
     eventId,
   });
   if (response.data) {
-    throw new Error('Something went wrong. Does this event even exist?🤨');
+    throw new Error('Looks like this event does not exist');
   }
   return response;
 };
@@ -80,7 +80,7 @@ export const showShifts = async (calendarId, props) => {
     'timeZone': process.env.TIMEZONE,
   });
   if (response.data.items.length === 0) {
-    throw new Error('No events in this period😕');
+    throw new Error('Looks like there is no any events at this period');
   }
   let listOfEvents;
   try {
@@ -93,10 +93,8 @@ export const showShifts = async (calendarId, props) => {
     if (!event.isEvent) {
       return `<i>${event.data}</i>`;
     }
-    const [startDateTime, finishDateTime] = [
-      event.data.start.dateTime,
-      event.data.end.dateTime,
-    ];
+    const startDateTime = event.data.start.dateTime,
+          finishDateTime = event.data.end.dateTime;
     return `<b>${format(startDateTime, Formats.fullDateLong)}</b>: ${format(
       startDateTime,
       Formats.time,
@@ -121,6 +119,9 @@ export const monthlyPayment = async (calendarId, wage, props) => {
     'timeMax': endDate,
     'timeZone': process.env.TIMEZONE,
   });
+  if (!response.data.items.length === 0) {
+    throw new Error('Looks like there is no any events at this period');
+  }
   response = response.data.items
     .filter((elem) => elem.summary === eventName)
     .map((elem) =>
